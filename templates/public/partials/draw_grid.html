@@ -4,14 +4,14 @@
 <section style="margin-bottom:28px">
 <p class="lbl">{{.Name}}</p>
 <div class="box">
-<div class="row head"><div class="c1">Team</div><div class="c2">Speaker</div><div class="c3">Side</div></div>
-{{range .Cards}}{{range .Speakers}}
+<div class="row head"><div class="c1">Team</div><div class="c2">For</div><div class="c2">Against</div></div>
+{{range .Rows}}
 <div class="row">
-<div class="c1">{{.TeamName}}</div>
-<div class="c2">{{.Speaker}}</div>
-<div class="c3"><span class="pill">{{.Allocation.Side}}</span></div>
+<div class="c1">{{.Team}}</div>
+<div class="c2">{{.For}}</div>
+<div class="c2">{{.Against}}</div>
 </div>
-{{end}}{{end}}
+{{end}}
 </div>
 </section>
 {{else}}

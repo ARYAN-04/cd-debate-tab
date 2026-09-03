@@ -16,6 +16,19 @@
 <div class="panel">
 <div class="h1">Rounds</div>
 <p class="sub">draft → published → concluded, guarded in tx.</p>
+{{if .Conflict}}
+<div class="errbox">
+<h2>Order {{.Conflict.Order}} is taken by “{{.Conflict.Existing}}”.</h2>
+<p class="mut" style="margin-bottom:12px">Shift {{.Conflict.Existing}} and later rounds forward to make room for “{{.Conflict.Name}}”, or go back and pick another order.</p>
+<form action="/admin/rounds" method="post">
+<input type="hidden" name="mode" value="shift">
+<input type="hidden" name="name" value="{{.Conflict.Name}}">
+<input type="hidden" name="round_order" value="{{.Conflict.Order}}">
+<input type="hidden" name="num_rooms" value="{{.Conflict.NumRooms}}">
+<button class="btn sm" type="submit">Shift rounds and create</button>
+</form>
+</div>
+{{end}}
 <p class="lbl">All rounds</p>
 <div class="box">
 {{range .Rounds}}

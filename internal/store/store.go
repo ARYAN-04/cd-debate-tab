@@ -715,6 +715,74 @@ func (s *Store) HasDraft(ctx context.Context, roundID string) (bool, error) {
 	return n > 0, nil
 }
 
+// ShiftRoundsFrom moves every round at order or later one step forward,
+// highest first so the UNIQUE(order) guard never collides mid-shift.
+func (s *Store) ShiftRoundsFrom(ctx context.Context, order int) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+	rows, err := tx.QueryContext(ctx,
+		`SELECT id FROM rounds WHERE round_order >= ? ORDER BY round_order DESC`, order)
+	if err != nil {
+		return err
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE rounds SET round_order = round_order + 1 WHERE id = ?`, id); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	committed = true
+	return nil
+}
+
+// ListPublicRounds returns published/concluded rounds, newest order first.
+func (s *Store) ListPublicRounds(ctx context.Context) ([]Round, error) {
+	rows, err := s.DB.QueryContext(ctx,
+		`SELECT id, name, round_order, num_rooms, status, created_at FROM rounds
+		 WHERE status IN ('published','concluded') ORDER BY round_order DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Round
+	for rows.Next() {
+		var r Round
+		var created any
+		if err := rows.Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &created); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (s *Store) GetDraftAllocations(ctx context.Context, roundID string) ([]DraftAllocation, error) {
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT `+draftAllocationCols+`
@@ -951,20 +1019,27 @@ func escapeLike(q string) string {
 
 // SearchAllocations uses parameterized LIKE ESCAPE, capped at 100 rows.
 func (s *Store) SearchAllocations(ctx context.Context, query string) ([]DraftAllocation, error) {
-	return s.searchAllocations(ctx, query, false)
+	return s.searchAllocationsIn(ctx, query, "", false)
 }
 
 // SearchPublicAllocations matches SearchAllocations but only over
 // published/concluded rounds, so drafts never leak to the public screen.
-func (s *Store) SearchPublicAllocations(ctx context.Context, query string) ([]DraftAllocation, error) {
-	return s.searchAllocations(ctx, query, true)
+// A non-empty roundID scopes the search to that round.
+func (s *Store) SearchPublicAllocations(ctx context.Context, query, roundID string) ([]DraftAllocation, error) {
+	return s.searchAllocationsIn(ctx, query, roundID, true)
 }
 
-func (s *Store) searchAllocations(ctx context.Context, query string, publicOnly bool) ([]DraftAllocation, error) {
+func (s *Store) searchAllocationsIn(ctx context.Context, query, roundID string, publicOnly bool) ([]DraftAllocation, error) {
 	pattern := "%" + escapeLike(query) + "%"
 	statusFilter := ""
 	if publicOnly {
 		statusFilter = `JOIN rounds rd ON rd.id = a.round_id AND rd.status IN ('published','concluded')`
+	}
+	roundFilter := ""
+	args := []any{pattern, pattern}
+	if roundID != "" {
+		roundFilter = `AND a.round_id = ?`
+		args = append(args, roundID)
 	}
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT `+draftAllocationCols+`
@@ -973,9 +1048,9 @@ func (s *Store) searchAllocations(ctx context.Context, query string, publicOnly 
 		 JOIN speakers s ON s.id = a.speaker_id
 		 JOIN rooms r ON r.id = a.room_id
 		 `+statusFilter+`
-		 WHERE (t.name LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\')
+		 WHERE (t.name LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\') `+roundFilter+`
 		 ORDER BY r.name, t.name, s.name
-		 LIMIT 100`, pattern, pattern)
+		 LIMIT 100`, args...)
 	if err != nil {
 		return nil, err
 	}

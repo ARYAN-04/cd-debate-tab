@@ -8,9 +8,12 @@
 </span>
 {{end}}
 </div>
-<div class="c3">{{if .Team.IsActive}}<span class="pill"><i class="i"></i>active</span>{{else}}<span class="pill"><i class="i a"></i>out</span>{{end}}</div>
+<div class="c3">
+<button type="button" class="pillbtn" title="Toggle active" hx-post="/admin/teams/toggle-active" hx-vals='{"team_id": "{{.Team.ID}}"}' hx-target="#team-{{.Team.ID}}" hx-swap="outerHTML">
+{{if .Team.IsActive}}<span class="pill"><i class="i"></i>active</span>{{else}}<span class="pill"><i class="i a"></i>out</span>{{end}}
+</button>
+</div>
 <div class="c4">
-<button type="button" class="btn ghost sm" hx-post="/admin/teams/toggle-active" hx-vals='{"team_id": "{{.Team.ID}}"}' hx-target="#team-{{.Team.ID}}" hx-swap="outerHTML">Toggle</button>
 <form class="subform" action="/admin/teams/{{.Team.ID}}/substitute-speaker" method="post">
 <input type="hidden" name="old_speaker_id" value="{{if .Speakers}}{{(index .Speakers 0).ID}}{{end}}">
 <input class="txtin sm" type="text" name="new_name" placeholder="New speaker" required>

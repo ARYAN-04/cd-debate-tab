@@ -330,7 +330,7 @@ func TestPublicSearchHidesDraft(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pub, err := st.SearchPublicAllocations(ctx, "")
+	pub, err := st.SearchPublicAllocations(ctx, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +340,7 @@ func TestPublicSearchHidesDraft(t *testing.T) {
 	if ok, err := st.Publish(ctx, r.ID); err != nil || !ok {
 		t.Fatalf("publish = %v, %v", ok, err)
 	}
-	pub, err = st.SearchPublicAllocations(ctx, "")
+	pub, err = st.SearchPublicAllocations(ctx, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,5 +371,63 @@ func TestLockedRoundImmutable(t *testing.T) {
 	}
 	if err := st.FlipSides(ctx, r.ID, tw.Team.ID); err != ErrRoundNotDraft {
 		t.Fatalf("flip on published round = %v, want ErrRoundNotDraft", err)
+	}
+}
+
+func TestShiftRoundsFrom(t *testing.T) {
+	st, ctx := testStore(t)
+	mustRound(t, st, ctx, "R1", 1, 1)
+	mustRound(t, st, ctx, "R2", 2, 1)
+	if err := st.ShiftRoundsFrom(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	rounds, err := st.ListRounds(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]int{}
+	for _, r := range rounds {
+		got[r.Name] = r.RoundOrder
+	}
+	if got["R1"] != 2 || got["R2"] != 3 {
+		t.Fatalf("orders after shift = %v, want R1:2 R2:3", got)
+	}
+	if _, err := st.CreateRound(ctx, "R0", 1, 1); err != nil {
+		t.Fatalf("create at freed order failed: %v", err)
+	}
+}
+
+func TestPublicSearchScopesRound(t *testing.T) {
+	st, ctx := testStore(t)
+	tw := mustTeam(t, st, ctx, "Theta", "Ted", "Tess")
+	mk := func(name string, order int) Round {
+		r := mustRound(t, st, ctx, name, order, 1)
+		room, _ := st.CreateRoom(ctx, r.ID, "Room A")
+		if err := st.SaveDraft(ctx, r.ID,
+			[]Room{{ID: room.ID, RoundID: r.ID, Name: room.Name}},
+			[]Allocation{
+				{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[0].ID, Side: "for"},
+				{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[1].ID, Side: "against"},
+			}); err != nil {
+			t.Fatal(err)
+		}
+		if ok, err := st.Publish(ctx, r.ID); err != nil || !ok {
+			t.Fatalf("publish %s = %v, %v", name, ok, err)
+		}
+		return r
+	}
+	r1 := mk("Round 1", 1)
+	r2 := mk("Round 2", 2)
+	pub, err := st.ListPublicRounds(ctx)
+	if err != nil || len(pub) != 2 || pub[0].ID != r2.ID {
+		t.Fatalf("public rounds = %+v, %v; want newest first", pub, err)
+	}
+	one, err := st.SearchPublicAllocations(ctx, "", r1.ID)
+	if err != nil || len(one) != 2 {
+		t.Fatalf("scoped search = %d rows, %v; want 2", len(one), err)
+	}
+	all, err := st.SearchPublicAllocations(ctx, "", "")
+	if err != nil || len(all) != 4 {
+		t.Fatalf("unscoped search = %d rows, %v; want 4", len(all), err)
 	}
 }

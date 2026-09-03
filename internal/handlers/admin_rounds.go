@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"cd-debate-tab/internal/auth"
 	"cd-debate-tab/internal/draw"
@@ -63,15 +64,65 @@ func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows})
 }
 
-// Create stores a new draft round.
+// Create stores a new draft round. A taken order re-renders the list with
+// a choice: shift later rounds forward, or pick another order.
 func (a AdminRounds) Create(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
 	order, _ := strconv.Atoi(r.FormValue("round_order"))
 	rooms, _ := strconv.Atoi(r.FormValue("num_rooms"))
-	if _, err := a.Store.CreateRound(r.Context(), r.FormValue("name"), order, rooms); err != nil {
+	if r.FormValue("mode") == "shift" {
+		if err := a.Store.ShiftRoundsFrom(r.Context(), order); err != nil {
+			httpErr(w, 500, "shift failed")
+			return
+		}
+	}
+	if _, err := a.Store.CreateRound(r.Context(), name, order, rooms); err != nil {
+		if r.FormValue("mode") != "shift" && isConflict(err) {
+			a.renderIndexWithConflict(w, r, name, order, rooms)
+			return
+		}
 		httpErr(w, 500, "create failed")
 		return
 	}
 	http.Redirect(w, r, "/admin/rounds", http.StatusSeeOther)
+}
+
+// conflictForm carries a taken order back to the list for resolution.
+type conflictForm struct {
+	Name     string
+	Order    int
+	NumRooms int
+	Existing string
+}
+
+// isConflict reports UNIQUE violations (taken round order or name).
+func isConflict(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "UNIQUE")
+}
+
+// renderIndexWithConflict re-renders the rounds list with a shift-or-repick
+// choice for the taken order.
+func (a AdminRounds) renderIndexWithConflict(w http.ResponseWriter, r *http.Request, name string, order, rooms int) {
+	rounds, err := a.Store.ListRounds(r.Context())
+	if err != nil {
+		httpErr(w, 500, "list failed")
+		return
+	}
+	rows := make([]RoundRow, 0, len(rounds))
+	existing := ""
+	for _, rd := range rounds {
+		has, err := a.Store.HasDraft(r.Context(), rd.ID)
+		if err != nil {
+			httpErr(w, 500, "list failed")
+			return
+		}
+		if rd.RoundOrder == order {
+			existing = rd.Name
+		}
+		rows = append(rows, RoundRow{Round: rd, HasDraft: has})
+	}
+	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows,
+		"Conflict": conflictForm{Name: name, Order: order, NumRooms: rooms, Existing: existing}})
 }
 
 // Generate runs chunking+balancing and persists the draft via the service.
@@ -154,7 +205,7 @@ func (a AdminRounds) Publish(w http.ResponseWriter, r *http.Request) {
 	}
 	allocs, _ := a.Store.GetDraftAllocations(r.Context(), roundID)
 	var buf bytes.Buffer
-	_ = a.Tmpl.ExecuteTemplate(&buf, "draw_grid", map[string]any{"Rooms": GroupDraft(allocs)})
+	_ = a.Tmpl.ExecuteTemplate(&buf, "draw_grid", map[string]any{"Rooms": GroupDraw(allocs)})
 	a.Hub.Broadcast(stream.EncodeSSEFrame("draw-published", buf.String()))
 	http.Redirect(w, r, "/admin/rounds/"+roundID+"/draft", http.StatusSeeOther)
 }

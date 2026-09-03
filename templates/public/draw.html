@@ -18,9 +18,18 @@
 <div class="panel">
 <div class="h1">Live draw</div>
 <p class="sub">Updates automatically when a round is published.</p>
+{{if .Rounds}}
+<form class="roundpick" action="/" method="get">
+<label class="mut" for="round">Round</label>
+<select class="txtin sm" id="round" name="round" onchange="this.form.submit()">
+{{range .Rounds}}<option value="{{.ID}}" {{if eq .ID $.CurrentRound}}selected{{end}}>{{.Name}} · {{.Status}}</option>{{end}}
+</select>
+</form>
+{{end}}
 <div hx-ext="sse" sse-connect="/events" sse-swap="draw-published" hx-target="#draw-grid" hx-swap="innerHTML"></div>
+<input type="hidden" name="round" value="{{.CurrentRound}}">
 <input class="txtin" style="margin-bottom:16px" type="search"
-name="q" placeholder="Search team or speaker…" hx-get="/draw/search" hx-target="#draw-grid" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms">
+name="q" placeholder="Search team or speaker…" hx-get="/draw/search" hx-include="[name=round]" hx-target="#draw-grid" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms">
 <div id="draw-grid">{{template "draw_grid" .}}</div>
 </div>
 </div>

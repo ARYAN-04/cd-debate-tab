@@ -47,6 +47,10 @@ a{color:inherit}
 .subform{display:inline-flex;gap:8px;align-items:center;margin-top:8px}
 .c4 .btn{margin-left:6px}.c4 .btn:first-child{margin-left:0}
 .c4{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.pillbtn{background:none;border:0;padding:0;cursor:pointer}
+.pillbtn .pill:hover{border-color:var(--mut)}
+.roundpick{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+.roundpick .txtin{width:auto;min-width:220px}
 .subform{display:inline-flex;gap:8px;align-items:center;margin-top:0;flex-wrap:wrap;max-width:100%}
 .txtin.sm{width:auto;padding:5px 9px;font-size:12px;flex:1;min-width:120px;max-width:100%}
 .sortable-list{min-height:80px;padding-bottom:28px;border-radius:6px}

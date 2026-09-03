@@ -82,3 +82,45 @@ func Imbalance(rooms []RoomGroup) (delta int, bad bool) {
 	}
 	return mx - mn, mx-mn > 1
 }
+
+// DrawRow is one team on the public table: speaker names per side.
+type DrawRow struct {
+	Team    string
+	For     string
+	Against string
+}
+
+// DrawRoom groups draw rows under one room section.
+type DrawRoom struct {
+	Name string
+	Rows []DrawRow
+}
+
+// GroupDraw buckets flat allocations into room sections with one row per
+// team (for/against speaker names side by side).
+func GroupDraw(allocs []store.DraftAllocation) []DrawRoom {
+	ri := map[string]int{}
+	var rooms []DrawRoom
+	ti := map[string]map[string]int{}
+	for _, a := range allocs {
+		i, ok := ri[a.Allocation.RoomID]
+		if !ok {
+			i = len(rooms)
+			ri[a.Allocation.RoomID] = i
+			ti[a.Allocation.RoomID] = map[string]int{}
+			rooms = append(rooms, DrawRoom{Name: a.RoomName})
+		}
+		j, ok := ti[a.Allocation.RoomID][a.Allocation.TeamID]
+		if !ok {
+			j = len(rooms[i].Rows)
+			ti[a.Allocation.RoomID][a.Allocation.TeamID] = j
+			rooms[i].Rows = append(rooms[i].Rows, DrawRow{Team: a.TeamName})
+		}
+		if a.Allocation.Side == "for" {
+			rooms[i].Rows[j].For = a.Speaker
+		} else {
+			rooms[i].Rows[j].Against = a.Speaker
+		}
+	}
+	return rooms
+}

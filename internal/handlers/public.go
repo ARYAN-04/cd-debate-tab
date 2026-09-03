@@ -28,14 +28,38 @@ func RegisterPublic(mux *http.ServeMux, p Public) {
 	mux.HandleFunc("GET /draw/search", p.Search)
 }
 
-// Index renders the public draw page with SSE listener.
+// Index renders the public draw page with SSE listener, scoped to one
+// round: ?round=ID, else the highest-order published round.
 func (p Public) Index(w http.ResponseWriter, r *http.Request) {
-	allocs, err := p.Store.SearchPublicAllocations(r.Context(), "")
+	rounds, err := p.Store.ListPublicRounds(r.Context())
+	if err != nil {
+		httpErr(w, 500, "list failed")
+		return
+	}
+	roundID := p.resolveRound(r.URL.Query().Get("round"), rounds)
+	allocs, err := p.Store.SearchPublicAllocations(r.Context(), "", roundID)
 	if err != nil {
 		httpErr(w, 500, "search failed")
 		return
 	}
-	render(w, p.Tmpl, "draw", map[string]any{"Rooms": GroupDraft(allocs), "IsAdmin": p.isAdmin(r)})
+	render(w, p.Tmpl, "draw", map[string]any{
+		"Rooms": GroupDraw(allocs), "IsAdmin": p.isAdmin(r),
+		"Rounds": rounds, "CurrentRound": roundID,
+	})
+}
+
+// resolveRound keeps an explicitly requested round, else the current one
+// (first of ListPublicRounds: highest order), else empty.
+func (p Public) resolveRound(want string, rounds []store.Round) string {
+	for _, rd := range rounds {
+		if rd.ID == want {
+			return want
+		}
+	}
+	if len(rounds) > 0 {
+		return rounds[0].ID
+	}
+	return ""
 }
 
 // isAdmin reports whether the request carries a live session cookie.
@@ -51,14 +75,20 @@ func (p Public) isAdmin(r *http.Request) bool {
 	return !auth.Expired(sess.ExpiresAt, time.Now())
 }
 
-// Search returns the capped LIKE-filtered grid partial.
+// Search returns the capped LIKE-filtered grid partial (same round scope).
 func (p Public) Search(w http.ResponseWriter, r *http.Request) {
-	allocs, err := p.Store.SearchPublicAllocations(r.Context(), r.URL.Query().Get("q"))
+	rounds, err := p.Store.ListPublicRounds(r.Context())
+	if err != nil {
+		httpErr(w, 500, "list failed")
+		return
+	}
+	roundID := p.resolveRound(r.URL.Query().Get("round"), rounds)
+	allocs, err := p.Store.SearchPublicAllocations(r.Context(), r.URL.Query().Get("q"), roundID)
 	if err != nil {
 		httpErr(w, 500, "search failed")
 		return
 	}
-	render(w, p.Tmpl, "draw_grid", map[string]any{"Rooms": GroupDraft(allocs)})
+	render(w, p.Tmpl, "draw_grid", map[string]any{"Rooms": GroupDraw(allocs)})
 }
 
 // loginLimiter caps POST /login attempts per IP (20/min) to slow brute force.
