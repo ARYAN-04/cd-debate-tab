@@ -1,0 +1,22 @@
+# Binaries / build
+/cd-debate-tab
+/bin/
+/dist/
+
+# Go
+*.test
+*.out
+
+# SQLite runtime
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+
+# Tailwind / assets build cache
+static/css/.tw-cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
