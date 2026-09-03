@@ -73,14 +73,30 @@ func RequireAuth(s *store.Store, next http.Handler) http.Handler {
 	})
 }
 
+const csrfTokenKey ctxKey = "csrfToken"
+
+// CSRFToken returns the current CSRF token from the request context or cookie.
+func CSRFToken(r *http.Request) string {
+	if tok, ok := r.Context().Value(csrfTokenKey).(string); ok && tok != "" {
+		return tok
+	}
+	if c, err := r.Cookie(CSRFCookie); err == nil && c.Value != "" {
+		return c.Value
+	}
+	return ""
+}
+
 // CSRFProtect mints a per-session CSRF cookie on safe methods and requires
-// the X-CSRF-Token header to match it on mutating methods (including
-// HTMX HX-Request calls). Mismatches get 403.
+// the X-CSRF-Token header or csrf_token form value on mutating methods.
+// Mismatches get 403.
 func CSRFProtect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet, http.MethodHead, http.MethodOptions:
-			ensureCSRFCookie(w, r)
+			tok := ensureCSRFCookie(w, r)
+			if tok != "" {
+				r = r.WithContext(context.WithValue(r.Context(), csrfTokenKey, tok))
+			}
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -97,14 +113,14 @@ func CheckCSRF(next http.Handler) http.Handler {
 	return CSRFProtect(next)
 }
 
-// ensureCSRFCookie sets the readable CSRF cookie when absent.
-func ensureCSRFCookie(w http.ResponseWriter, r *http.Request) {
+// ensureCSRFCookie sets the readable CSRF cookie when absent and returns the token.
+func ensureCSRFCookie(w http.ResponseWriter, r *http.Request) string {
 	if c, err := r.Cookie(CSRFCookie); err == nil && c.Value != "" {
-		return
+		return c.Value
 	}
 	token, err := GenerateToken()
 	if err != nil {
-		return
+		return ""
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     CSRFCookie,
@@ -113,15 +129,19 @@ func ensureCSRFCookie(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int((24 * time.Hour).Seconds()),
 	})
+	return token
 }
 
-// validCSRF compares the X-CSRF-Token header against the CSRF cookie.
+// validCSRF compares the X-CSRF-Token header or csrf_token form field against the CSRF cookie.
 func validCSRF(r *http.Request) bool {
 	c, err := r.Cookie(CSRFCookie)
 	if err != nil || c.Value == "" {
 		return false
 	}
 	got := r.Header.Get(CSRFHeader)
+	if got == "" {
+		got = r.FormValue("csrf_token")
+	}
 	if got == "" {
 		return false
 	}

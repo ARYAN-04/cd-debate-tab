@@ -1,3 +1,8 @@
+function getCsrfToken() {
+  var m = document.cookie.match(/(?:^|;\s*)csrf=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : "";
+}
+
 // SortableJS wiring: drag team cards between rooms, POST team_id+target_room_id,
 // swap #draft-canvas with the returned fragment. Fragment swaps replace DOM
 // nodes, so Sortable must be (re-)attached after every swap.
@@ -20,7 +25,10 @@ function initSortable(root) {
         var params = new URLSearchParams({ team_id: teamId, target_room_id: targetRoomId });
         fetch("/admin/rounds/" + roundId + "/move-team", {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRF-Token": getCsrfToken(),
+          },
           body: params.toString(),
         })
           .then(function (r) {
@@ -53,4 +61,24 @@ document.addEventListener("DOMContentLoaded", function () {
 // HTMX fragment swaps (e.g. Flip sides) replace the lists: re-attach.
 document.body.addEventListener("htmx:afterSwap", function (e) {
   initSortable(e.target);
+});
+
+// Attach CSRF header to every HTMX request.
+document.body.addEventListener("htmx:configRequest", function (evt) {
+  var tok = getCsrfToken();
+  if (tok) evt.detail.headers["X-CSRF-Token"] = tok;
+});
+
+// Inject csrf_token into standard POST forms if missing.
+document.addEventListener("submit", function (e) {
+  var form = e.target;
+  if (!form || !form.method || form.method.toLowerCase() !== "post") return;
+  if (form.querySelector("input[name='csrf_token']")) return;
+  var tok = getCsrfToken();
+  if (!tok) return;
+  var inp = document.createElement("input");
+  inp.type = "hidden";
+  inp.name = "csrf_token";
+  inp.value = tok;
+  form.appendChild(inp);
 });

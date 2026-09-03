@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 
 	"cd-debate-tab/internal/store"
@@ -19,7 +20,9 @@ func LoadTemplates() (*template.Template, error) {
 
 func render(w http.ResponseWriter, t *template.Template, name string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = t.ExecuteTemplate(w, name, data)
+	if err := t.ExecuteTemplate(w, name, data); err != nil {
+		log.Printf("render template %q error: %v", name, err)
+	}
 }
 
 func httpErr(w http.ResponseWriter, code int, msg string) {

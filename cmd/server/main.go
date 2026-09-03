@@ -52,10 +52,10 @@ func main() {
 		log.Fatal(err)
 	}
 	go func() {
-		t := time.NewTicker(5 * time.Minute)
+		t := time.NewTicker(30 * time.Minute)
 		defer t.Stop()
 		for range t.C {
-			_ = db.Ping()
+			_, _ = st.DeleteExpiredSessions(context.Background())
 		}
 	}()
 	mux := http.NewServeMux()
@@ -71,5 +71,11 @@ func main() {
 	root := http.NewServeMux()
 	root.Handle("/events", httpx.RequestID(httpx.Recover(events)))
 	root.Handle("/", h)
-	log.Fatal(http.ListenAndServe(":8080", root))
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           root,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
 }

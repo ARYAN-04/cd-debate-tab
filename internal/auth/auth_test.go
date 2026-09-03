@@ -110,4 +110,15 @@ func TestCSRFRejectAccept(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("mismatch POST code = %d, want 403", rec.Code)
 	}
+
+	// Accept: matching form value + cookie.
+	rec = httptest.NewRecorder()
+	form := strings.NewReader("csrf_token=tok123&name=test")
+	req = httptest.NewRequest(http.MethodPost, "/", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: CSRFCookie, Value: "tok123"})
+	CSRFProtect(okHandler()).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("form POST code = %d, want 200", rec.Code)
+	}
 }
