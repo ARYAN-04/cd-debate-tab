@@ -9,6 +9,9 @@ function initSortable(root) {
     Sortable.create(el, {
       group: "rooms",
       animation: 150,
+      emptyInsertThreshold: 12,
+      fallbackTolerance: 3,
+      ghostClass: "sortable-ghost",
       onAdd: function (evt) {
         var card = evt.item;
         var teamId = card.getAttribute("data-team-id");
@@ -30,6 +33,9 @@ function initSortable(root) {
             var next = tmp.querySelector("#draft-canvas");
             if (next) {
               document.querySelector("#draft-canvas").replaceWith(next);
+              // Native DOM insertion bypasses HTMX: process new Flip-side
+              // buttons manually, then re-attach drag-drop.
+              if (typeof htmx !== "undefined") htmx.process(next);
               initSortable(document);
             }
           })

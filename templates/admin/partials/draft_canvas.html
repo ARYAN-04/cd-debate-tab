@@ -7,7 +7,7 @@
 {{range .Rooms}}
 <section class="col" data-room-id="{{.ID}}">
 <h2>{{.Name}} <span class="count">· {{len .Cards}}</span></h2>
-<div class="sortable-list" data-room-id="{{.ID}}" style="min-height:64px">
+<div class="sortable-list" data-room-id="{{.ID}}">
 {{range .Cards}}
 <article class="tcard" data-team-id="{{.TeamID}}">
 <div class="thead">

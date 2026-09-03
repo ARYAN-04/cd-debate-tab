@@ -46,6 +46,11 @@ a{color:inherit}
 .spk .btn{margin-left:8px}
 .subform{display:inline-flex;gap:8px;align-items:center;margin-top:8px}
 .c4 .btn{margin-left:6px}.c4 .btn:first-child{margin-left:0}
+.c4{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.subform{display:inline-flex;gap:8px;align-items:center;margin-top:0;flex-wrap:wrap;max-width:100%}
+.txtin.sm{width:auto;padding:5px 9px;font-size:12px;flex:1;min-width:120px;max-width:100%}
+.sortable-list{min-height:80px;padding-bottom:28px;border-radius:6px}
+.sortable-ghost{opacity:.4}
 /* Public pages: centered column, no admin sidebar. */
 .pubwrap{max-width:1020px;margin:0 auto;padding:0 32px 48px}
 .pubtop{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:#000;z-index:5}
