@@ -348,3 +348,28 @@ func TestPublicSearchHidesDraft(t *testing.T) {
 		t.Fatalf("public search matched %d rows, want 2", len(pub))
 	}
 }
+
+func TestLockedRoundImmutable(t *testing.T) {
+	st, ctx := testStore(t)
+	tw := mustTeam(t, st, ctx, "Eta", "Ed", "Ella")
+	r := mustRound(t, st, ctx, "Round 1", 1, 2)
+	room, _ := st.CreateRoom(ctx, r.ID, "Room A")
+	room2, _ := st.CreateRoom(ctx, r.ID, "Room B")
+	if err := st.SaveDraft(ctx, r.ID,
+		[]Room{{ID: room.ID, RoundID: r.ID, Name: room.Name}, {ID: room2.ID, RoundID: r.ID, Name: room2.Name}},
+		[]Allocation{
+			{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[0].ID, Side: "for"},
+			{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[1].ID, Side: "against"},
+		}); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := st.Publish(ctx, r.ID); err != nil || !ok {
+		t.Fatalf("publish = %v, %v", ok, err)
+	}
+	if err := st.MoveTeam(ctx, r.ID, tw.Team.ID, room2.ID); err != ErrRoundNotDraft {
+		t.Fatalf("move on published round = %v, want ErrRoundNotDraft", err)
+	}
+	if err := st.FlipSides(ctx, r.ID, tw.Team.ID); err != ErrRoundNotDraft {
+		t.Fatalf("flip on published round = %v, want ErrRoundNotDraft", err)
+	}
+}

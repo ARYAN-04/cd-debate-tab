@@ -731,6 +731,23 @@ func (s *Store) GetDraftAllocations(ctx context.Context, roundID string) ([]Draf
 	return out, nil
 }
 
+// draftOnlyTx fails unless roundID is still a draft (locked rounds are
+// immutable). Call inside an open tx before mutating draft allocations.
+func draftOnlyTx(ctx context.Context, tx *sql.Tx, roundID string) error {
+	var status string
+	err := tx.QueryRowContext(ctx, `SELECT status FROM rounds WHERE id = ?`, roundID).Scan(&status)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if status != "draft" {
+		return ErrRoundNotDraft
+	}
+	return nil
+}
+
 // MoveTeam re-points both of a team's speaker allocations to the target
 // room in one tx after verifying the room belongs to the same round.
 func (s *Store) MoveTeam(ctx context.Context, roundID, teamID, targetRoomID string) error {
@@ -747,6 +764,9 @@ func (s *Store) MoveTeam(ctx context.Context, roundID, teamID, targetRoomID stri
 			_ = tx.Rollback()
 		}
 	}()
+	if err := draftOnlyTx(ctx, tx, roundID); err != nil {
+		return err
+	}
 	var roomRound string
 	err = tx.QueryRowContext(ctx, `SELECT round_id FROM rooms WHERE id = ?`, targetRoomID).Scan(&roomRound)
 	if err != nil {
@@ -793,6 +813,9 @@ func (s *Store) FlipSides(ctx context.Context, roundID, teamID string) error {
 			_ = tx.Rollback()
 		}
 	}()
+	if err := draftOnlyTx(ctx, tx, roundID); err != nil {
+		return err
+	}
 	rows, err := tx.QueryContext(ctx,
 		`SELECT speaker_id, side FROM allocations WHERE round_id = ? AND team_id = ?`,
 		roundID, teamID)
