@@ -20,3 +20,6 @@ static/css/.tw-cache/
 .DS_Store
 .idea/
 .vscode/
+
+# Local agent guide (personal workspace prefs, not shared)
+AGENTS.md
