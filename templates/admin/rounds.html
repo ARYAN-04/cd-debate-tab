@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rounds · Debate Tab</title>
+<title>Rounds · Yellow-CD</title>
 <link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
@@ -12,7 +12,7 @@
 <div class="app">
 {{template "sidebar" "rounds"}}
 <div class="main">
-<div class="top"><div class="crumb">debate tab / <b>Rounds</b></div></div>
+<div class="top"><div class="crumb">yellow-cd / <b>Rounds</b></div></div>
 <div class="panel">
 <div class="h1">Rounds</div>
 <p class="sub">draft → published → concluded, guarded in tx.</p>
@@ -41,10 +41,12 @@
 <div class="c3">{{if eq .Round.Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Round.Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}{{if .Round.IsHidden}} <span class="pill"><i class="i a"></i>hidden</span>{{end}}</div>
 <div class="c4">
 {{if .HasDraft}}<a class="btn ghost sm" href="/admin/rounds/{{.Round.ID}}/draft">Open</a>{{end}}
+{{if eq .Round.Status "draft"}}
 <form class="subform" action="/admin/rounds/generate" method="post">
 <input type="hidden" name="round_id" value="{{.Round.ID}}">
 <button class="btn ghost sm" type="submit">{{if .HasDraft}}Re-generate{{else}}Generate{{end}}</button>
 </form>
+{{end}}
 {{if ne .Round.Status "draft"}}
 <form class="subform" action="/admin/rounds/{{.Round.ID}}/visibility" method="post">
 <input type="hidden" name="hidden" value="{{if .Round.IsHidden}}0{{else}}1{{end}}">

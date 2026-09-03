@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Draft {{.Round.Name}} · Debate Tab</title>
+<title>Draft {{.Round.Name}} · Yellow-CD</title>
 <link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -20,8 +20,8 @@
 <p class="sub">Drag cards between rooms. Status: {{.Round.Status}} · bias counts published rounds only.</p>
 {{template "draft_canvas" .}}
 <div class="actions">
-<form action="/admin/rounds/{{.Round.ID}}/publish" method="post"><button class="btn sm" type="submit">Publish</button></form>
-<form action="/admin/rounds/{{.Round.ID}}/conclude" method="post"><button class="btn ghost sm" type="submit">Conclude</button></form>
+{{if eq .Round.Status "draft"}}<form action="/admin/rounds/{{.Round.ID}}/publish" method="post"><button class="btn sm" type="submit">Publish</button></form>{{end}}
+{{if eq .Round.Status "published"}}<form action="/admin/rounds/{{.Round.ID}}/conclude" method="post"><button class="btn ghost sm" type="submit">Conclude</button></form>{{end}}
 </div>
 </div>
 </div>

@@ -3,8 +3,8 @@
 <div class="c1">{{.Team.Name}}</div>
 <div class="c2">
 {{range .Speakers}}
-<span class="spk">{{.Name}}
-<button type="button" class="btn ghost sm" hx-patch="/admin/speakers/{{.ID}}/redact" hx-prompt="New name for {{.Name}}">Redact</button>
+<span class="spk{{if not .IsActive}} mut{{end}}" id="speaker-{{.ID}}"><span class="spk-name">{{.Name}}{{if not .IsActive}} (subbed){{end}}</span>
+<button type="button" class="btn ghost sm" hx-patch="/admin/speakers/{{.ID}}/redact" hx-prompt="New name for {{.Name}}" hx-target="#speaker-{{.ID}} .spk-name" hx-swap="innerText">Redact</button>
 </span>
 {{end}}
 </div>
@@ -15,7 +15,9 @@
 </div>
 <div class="c4">
 <form class="subform" action="/admin/teams/{{.Team.ID}}/substitute-speaker" method="post">
-<input type="hidden" name="old_speaker_id" value="{{if .Speakers}}{{(index .Speakers 0).ID}}{{end}}">
+<select class="txtin sm" name="old_speaker_id" required>
+{{range .Speakers}}{{if .IsActive}}<option value="{{.ID}}">Sub {{.Name}}</option>{{end}}{{end}}
+</select>
 <input class="txtin sm" type="text" name="new_name" placeholder="New speaker" required>
 <button class="btn ghost sm" type="submit">Sub</button>
 </form>

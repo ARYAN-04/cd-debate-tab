@@ -89,4 +89,4 @@ a{color:inherit}
 .pubtop{display:flex;align-items:center;justify-content:space-between;padding:20px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
 .roundpick{display:flex;gap:12px;align-items:center;margin-bottom:20px;font-size:14px}
 .roundpick .txtin{width:auto;min-width:230px}
-@media(max-width:900px){.board{grid-template-columns:1fr}.side{width:64px}.side .t,.side .linkbtn{display:none}.wordmark{font-size:0}.wordmark::after{content:"DT";font-size:14px}.main,.pubwrap{padding-left:20px;padding-right:20px}}
+@media(max-width:900px){.board{grid-template-columns:1fr}.side{width:64px}.side .t,.side .linkbtn{display:none}.wordmark{font-size:0}.wordmark::after{content:"Y-CD";font-size:14px}.main,.pubwrap{padding-left:20px;padding-right:20px}}
