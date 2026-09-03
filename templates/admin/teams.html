@@ -16,10 +16,20 @@
 <div class="panel">
 <div class="h1">Teams</div>
 <p class="sub">{{len .Teams}} teams · exactly 2 active speakers each.</p>
+{{if .Err}}<div class="errbox"><h2>{{.Err}}</h2></div>{{end}}
 <p class="lbl">Roster</p>
 <div class="box">
 <div class="row head"><div class="c1">Team</div><div class="c2">Speakers</div><div class="c3">Status</div><div class="c4">Actions</div></div>
 {{range .Teams}}{{template "team_row" .}}{{end}}
+</div>
+<div class="set" style="margin-top:24px">
+<p class="lbl">Add team manually</p>
+<form action="/admin/teams/add" method="post">
+<div><label>Team name</label><input name="team_name" placeholder="Aurora" required></div>
+<div><label>Speaker 1</label><input name="speaker1" placeholder="M. Chen" required></div>
+<div><label>Speaker 2</label><input name="speaker2" placeholder="J. Okafor" required></div>
+<div><button class="btn sm" type="submit">Add team</button></div>
+</form>
 </div>
 <form class="drop" action="/admin/teams/import" method="post" enctype="multipart/form-data">
 <div><b style="color:var(--txt)">Import CSV</b><br>Team Name, Speaker 1, Speaker 2 · 1 MB / 2000 rows max</div>

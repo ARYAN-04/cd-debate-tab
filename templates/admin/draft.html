@@ -13,9 +13,10 @@
 <div class="app">
 {{template "sidebar" "rounds"}}
 <div class="main">
-<div class="top"><div class="crumb">rounds / <b>Draft · {{.Round.Name}}</b></div></div>
+<div class="top"><div class="crumb"><a href="/admin/rounds">rounds</a> / <b>Draft · {{.Round.Name}}</b></div></div>
 <div class="panel">
-<div class="h1">Draft · {{.Round.Name}}</div>
+<a class="btn ghost sm" href="/admin/rounds">← Rounds</a>
+<div class="h1" style="margin-top:16px">Draft · {{.Round.Name}}</div>
 <p class="sub">Drag cards between rooms. Status: {{.Round.Status}} · bias counts published rounds only.</p>
 {{template "draft_canvas" .}}
 <div class="actions">

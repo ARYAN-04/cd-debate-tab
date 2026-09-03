@@ -20,14 +20,14 @@
 <div class="box">
 {{range .Rounds}}
 <div class="row">
-<div class="c1">{{.Name}} · {{.NumRooms}} rooms</div>
-<div class="c2">#{{.RoundOrder}}</div>
-<div class="c3">{{if eq .Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}</div>
+<div class="c1">{{.Round.Name}} · {{.Round.NumRooms}} rooms</div>
+<div class="c2">#{{.Round.RoundOrder}}</div>
+<div class="c3">{{if eq .Round.Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Round.Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}</div>
 <div class="c4">
-<a class="btn ghost sm" href="/admin/rounds/{{.ID}}/draft">Open</a>
+{{if .HasDraft}}<a class="btn ghost sm" href="/admin/rounds/{{.Round.ID}}/draft">Open</a>{{end}}
 <form class="subform" action="/admin/rounds/generate" method="post">
-<input type="hidden" name="round_id" value="{{.ID}}">
-<button class="btn ghost sm" type="submit">Generate</button>
+<input type="hidden" name="round_id" value="{{.Round.ID}}">
+<button class="btn ghost sm" type="submit">{{if .HasDraft}}Re-generate{{else}}Generate{{end}}</button>
 </form>
 </div>
 </div>

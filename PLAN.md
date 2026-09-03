@@ -221,6 +221,7 @@ Param naming is consistent: `{roundID}`, `{teamID}`, `{speakerID}`.
 | `GET` | `/admin/teams` | Yes | Team management, active/eliminated toggles |
 | `POST` | `/admin/teams/import` | Yes | Process CSV upload; returns success or error repair form |
 | `POST` | `/admin/teams/manual-batch` | Yes | Submit inline-corrected CSV rows from `import_errors.html` |
+| `POST` | `/admin/teams/add` | Yes | Manual single-team form (`team_name`, `speaker1`, `speaker2`) |
 | `POST` | `/admin/teams/toggle-active` | Yes | Toggle `is_active` status for elimination/resurrection (body: `team_id`) |
 | `POST` | `/admin/teams/{teamID}/substitute-speaker` | Yes | Deactivate old speaker, add new active speaker (+ re-point open draft) |
 | `PATCH` | `/admin/speakers/{speakerID}/redact` | Yes | In-place name correction/redaction (via `hx-patch` + CSRF header) |

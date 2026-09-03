@@ -28,6 +28,7 @@ func RegisterAdminTeams(mux *http.ServeMux, a AdminTeams) {
 	mux.Handle("GET /admin/teams", g(a.Index))
 	mux.Handle("POST /admin/teams/import", g(a.Import))
 	mux.Handle("POST /admin/teams/manual-batch", g(a.ManualBatch))
+	mux.Handle("POST /admin/teams/add", g(a.Add))
 	mux.Handle("POST /admin/teams/toggle-active", g(a.ToggleActive))
 	mux.Handle("POST /admin/teams/{teamID}/substitute-speaker", g(a.Substitute))
 	mux.Handle("PATCH /admin/speakers/{speakerID}/redact", g(a.Redact))
@@ -41,6 +42,33 @@ func (a AdminTeams) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render(w, a.Tmpl, "teams", map[string]any{"Teams": teams})
+}
+
+// Add creates one team from the manual form (same rules as CSV rows).
+func (a AdminTeams) Add(w http.ResponseWriter, r *http.Request) {
+	fail := func(reason string) {
+		teams, err := a.Store.ListTeamsWithSpeakers(r.Context())
+		if err != nil {
+			httpErr(w, 500, "list failed")
+			return
+		}
+		render(w, a.Tmpl, "teams", map[string]any{"Teams": teams, "Err": reason})
+	}
+	team, s1, s2 := strings.TrimSpace(r.FormValue("team_name")),
+		strings.TrimSpace(r.FormValue("speaker1")), strings.TrimSpace(r.FormValue("speaker2"))
+	if team == "" || s1 == "" || s2 == "" {
+		fail("team and both speakers are required")
+		return
+	}
+	if strings.EqualFold(s1, s2) {
+		fail("speakers must not be identical")
+		return
+	}
+	if _, err := a.Store.CreateTeam(r.Context(), team, s1, s2); err != nil {
+		fail("could not add team (duplicate name?)")
+		return
+	}
+	http.Redirect(w, r, "/admin/teams", http.StatusSeeOther)
 }
 
 // Import parses CSV, inserts valid rows, renders import_errors on row errors.

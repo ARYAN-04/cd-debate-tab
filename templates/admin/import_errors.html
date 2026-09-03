@@ -11,9 +11,10 @@
 <div class="app">
 {{template "sidebar" "teams"}}
 <div class="main">
-<div class="top"><div class="crumb">teams / <b>Fix import</b></div></div>
+<div class="top"><div class="crumb"><a href="/admin/teams">teams</a> / <b>Fix import</b></div></div>
 <div class="panel">
-<div class="h1">Fix {{len .Errs}} bad rows</div>
+<a class="btn ghost sm" href="/admin/teams">← Teams</a>
+<div class="h1" style="margin-top:16px">Fix {{len .Errs}} bad rows</div>
 <p class="sub">Valid rows were kept. Correct the rows below and resubmit.</p>
 <div class="errbox">
 <form action="/admin/teams/manual-batch" method="post">

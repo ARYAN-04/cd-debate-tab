@@ -35,7 +35,7 @@ func (p Public) Index(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, "search failed")
 		return
 	}
-	render(w, p.Tmpl, "draw", map[string]any{"Allocs": allocs, "IsAdmin": p.isAdmin(r)})
+	render(w, p.Tmpl, "draw", map[string]any{"Rooms": GroupDraft(allocs), "IsAdmin": p.isAdmin(r)})
 }
 
 // isAdmin reports whether the request carries a live session cookie.
@@ -58,7 +58,7 @@ func (p Public) Search(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, "search failed")
 		return
 	}
-	render(w, p.Tmpl, "draw_grid", map[string]any{"Allocs": allocs})
+	render(w, p.Tmpl, "draw_grid", map[string]any{"Rooms": GroupDraft(allocs)})
 }
 
 // loginLimiter caps POST /login attempts per IP (20/min) to slow brute force.

@@ -38,6 +38,12 @@ func RegisterAdminRounds(mux *http.ServeMux, a AdminRounds) {
 	mux.Handle("POST /admin/rounds/{roundID}/conclude", g(a.Conclude))
 }
 
+// RoundRow pairs a round with whether it has a generated draft to open.
+type RoundRow struct {
+	Round    store.Round
+	HasDraft bool
+}
+
 // Index lists rounds with a creator form.
 func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 	rounds, err := a.Store.ListRounds(r.Context())
@@ -45,7 +51,16 @@ func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, "list failed")
 		return
 	}
-	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rounds})
+	rows := make([]RoundRow, 0, len(rounds))
+	for _, rd := range rounds {
+		has, err := a.Store.HasDraft(r.Context(), rd.ID)
+		if err != nil {
+			httpErr(w, 500, "list failed")
+			return
+		}
+		rows = append(rows, RoundRow{Round: rd, HasDraft: has})
+	}
+	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows})
 }
 
 // Create stores a new draft round.
@@ -139,7 +154,7 @@ func (a AdminRounds) Publish(w http.ResponseWriter, r *http.Request) {
 	}
 	allocs, _ := a.Store.GetDraftAllocations(r.Context(), roundID)
 	var buf bytes.Buffer
-	_ = a.Tmpl.ExecuteTemplate(&buf, "draw_grid", map[string]any{"Allocs": allocs})
+	_ = a.Tmpl.ExecuteTemplate(&buf, "draw_grid", map[string]any{"Rooms": GroupDraft(allocs)})
 	a.Hub.Broadcast(stream.EncodeSSEFrame("draw-published", buf.String()))
 	http.Redirect(w, r, "/admin/rounds/"+roundID+"/draft", http.StatusSeeOther)
 }

@@ -704,6 +704,17 @@ func scanDraftAllocation(rows *sql.Rows) (DraftAllocation, error) {
 	return d, err
 }
 
+// HasDraft reports whether a round has any allocations (i.e. it was generated).
+func (s *Store) HasDraft(ctx context.Context, roundID string) (bool, error) {
+	var n int
+	err := s.DB.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM allocations WHERE round_id = ?`, roundID).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
 func (s *Store) GetDraftAllocations(ctx context.Context, roundID string) ([]DraftAllocation, error) {
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT `+draftAllocationCols+`
