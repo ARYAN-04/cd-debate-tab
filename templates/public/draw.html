@@ -1,0 +1,22 @@
+{{define "draw"}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw · Debate Tab</title>
+<link rel="stylesheet" href="/static/css/dist.css">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<main class="p-4 max-w-6xl mx-auto">
+<h1 class="text-3xl font-bold mb-4">Draw</h1>
+<div hx-ext="sse" sse-connect="/events" sse-swap="draw-published" hx-target="#draw-grid" hx-swap="innerHTML"></div>
+<input class="w-full mb-4 px-3 py-2 rounded bg-slate-900 border border-slate-700" type="search"
+name="q" placeholder="Search team or speaker…" hx-get="/draw/search" hx-target="#draw-grid" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms">
+<div id="draw-grid">{{template "draw_grid" .}}</div>
+</main>
+</body>
+</html>
+{{end}}

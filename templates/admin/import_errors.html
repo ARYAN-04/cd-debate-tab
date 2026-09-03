@@ -1,0 +1,15 @@
+{{define "import_errors"}}
+<div id="import-errors" class="border border-red-500 rounded p-4 my-4">
+<h2 class="text-lg font-bold text-red-300 mb-2">Fix {{len .Errs}} bad rows, then resubmit</h2>
+<form action="/admin/teams/manual-batch" method="post" class="flex flex-col gap-2">
+{{range .Errs}}
+<div class="flex gap-2 items-center text-sm">
+<span class="text-slate-400 w-14">line {{.Line}}</span>
+<input class="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700" type="text" name="row" value="{{.Raw}}">
+<span class="text-red-300 w-64">{{.Reason}}</span>
+</div>
+{{end}}
+<button class="px-3 py-1 bg-emerald-600 rounded w-fit" type="submit">Submit corrections</button>
+</form>
+</div>
+{{end}}

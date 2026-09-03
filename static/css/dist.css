@@ -1,0 +1,13 @@
+/* Compiled Tailwind output (standalone CLI: make tailwind). */
+*,::before,::after{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif}
+.bg-slate-950{background:#020617}.bg-slate-900{background:#0f172a}.bg-slate-700{background:#334155}.bg-emerald-600{background:#059669}.bg-amber-500{background:#f59e0b}
+.text-slate-100{color:#f1f5f9}.text-slate-300{color:#cbd5e1}.text-slate-400{color:#94a3b8}.text-red-300{color:#fca5a5}.text-black{color:#000}
+.border{border-width:1px}.border-slate-700{border-color:#334155}.border-slate-800{border-color:#1e293b}.border-red-500{border-color:#ef4444}
+.rounded{border-radius:.375rem}.p-2{padding:.5rem}.p-3{padding:.75rem}.p-4{padding:1rem}.px-1{padding-left:.25rem;padding-right:.25rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}
+.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mt-4{margin-top:1rem}.my-4{margin-top:1rem;margin-bottom:1rem}.mr-2{margin-right:.5rem}
+.flex{display:flex}.inline{display:inline}.inline-block{display:inline-block}.grid{display:grid}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.w-full{width:100%}.w-14{width:3.5rem}.w-64{width:16rem}.w-fit{width:fit-content}.max-w-6xl{max-width:72rem}.mx-auto{margin-left:auto;margin-right:auto}.min-h-screen{min-height:100vh}.min-h-16{min-height:4rem}
+.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-lg{font-size:1.125rem}.text-2xl{font-size:1.5rem}.text-3xl{font-size:1.875rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.uppercase{text-transform:uppercase}.underline{text-decoration:underline}.text-left{text-align:left}
+.border-t{border-top-width:1px}.border-b{border-bottom-width:1px}
+@media(min-width:768px){.md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}

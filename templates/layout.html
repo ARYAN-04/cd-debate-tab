@@ -1,0 +1,25 @@
+<!doctype html>
+{{define "layout"}}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Title}}{{.Title}} · {{end}}Debate Tab</title>
+<link rel="stylesheet" href="/static/css/dist.css">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<header class="border-b border-slate-800 px-4 py-3 flex gap-4 items-center">
+<a class="font-bold" href="/">Debate Tab</a>
+<nav class="flex gap-3 text-sm">
+<a class="underline" href="/admin/teams">Teams</a>
+<a class="underline" href="/admin/rounds">Rounds</a>
+</nav>
+</header>
+<main class="p-4 max-w-6xl mx-auto">{{block "content" .}}{{end}}</main>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
+{{end}}

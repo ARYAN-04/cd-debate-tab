@@ -1,0 +1,21 @@
+{{define "team_row"}}
+<tr id="team-{{.Team.ID}}" class="border-t border-slate-800">
+<td class="p-2 font-medium">{{.Team.Name}}</td>
+<td class="p-2">
+{{range .Speakers}}
+<span class="inline-block mr-2">{{.Name}}
+<button class="underline text-xs text-slate-400" hx-patch="/admin/speakers/{{.ID}}/redact" hx-prompt="New name for {{.Name}}">redact</button>
+</span>
+{{end}}
+</td>
+<td class="p-2">{{if .Team.IsActive}}active{{else}}out{{end}}</td>
+<td class="p-2 flex gap-2">
+<button class="underline text-xs" hx-post="/admin/teams/toggle-active" hx-vals='{"team_id": "{{.Team.ID}}"}' hx-target="#team-{{.Team.ID}}" hx-swap="outerHTML">toggle</button>
+<form class="inline" action="/admin/teams/{{.Team.ID}}/substitute-speaker" method="post">
+<input type="hidden" name="old_speaker_id" value="{{if .Speakers}}{{(index .Speakers 0).ID}}{{end}}">
+<input class="px-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-xs" type="text" name="new_name" placeholder="New speaker" required>
+<button class="underline text-xs" type="submit">sub</button>
+</form>
+</td>
+</tr>
+{{end}}

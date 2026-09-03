@@ -1,0 +1,27 @@
+{{define "draft_canvas"}}
+<div id="draft-canvas">
+{{if .Imbalanced}}
+<div id="imbalance-badge" class="mb-3 px-3 py-2 rounded bg-amber-500 text-black text-sm font-medium">Imbalanced Rooms: Room sizes differ by more than 1 team. (Δ={{.Delta}})</div>
+{{end}}
+<div class="grid gap-3 md:grid-cols-3">
+{{range .Rooms}}
+<section class="rounded border border-slate-700 p-2" data-room-id="{{.ID}}">
+<h3 class="font-bold text-sm mb-2">{{.Name}} ({{len .Cards}})</h3>
+<div class="sortable-list flex flex-col gap-2 min-h-16" data-room-id="{{.ID}}">
+{{range .Cards}}
+<article class="rounded bg-slate-900 border border-slate-700 p-2" data-team-id="{{.TeamID}}">
+<div class="flex justify-between items-center">
+<strong class="text-sm">{{.TeamName}}</strong>
+<button class="text-xs underline" hx-post="/admin/rounds/{{$.Round.ID}}/teams/{{.TeamID}}/flip-sides" hx-target="#draft-canvas" hx-swap="outerHTML">Flip Sides</button>
+</div>
+<ul class="text-xs text-slate-300">
+{{range .Speakers}}<li>{{.Speaker}} · {{.Allocation.Side}}</li>{{end}}
+</ul>
+</article>
+{{end}}
+</div>
+</section>
+{{end}}
+</div>
+</div>
+{{end}}
