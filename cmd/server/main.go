@@ -5,8 +5,10 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
+	"cd-debate-tab/internal/auth"
 	"cd-debate-tab/internal/database"
 	"cd-debate-tab/internal/draw"
 	"cd-debate-tab/internal/handlers"
@@ -14,6 +16,23 @@ import (
 	"cd-debate-tab/internal/store"
 	"cd-debate-tab/internal/stream"
 )
+
+// seedAdmin ensures a first admin exists from ADMIN_USER/ADMIN_PASS,
+// defaulting to admin/admin for local dev with a loud warning.
+func seedAdmin(st *store.Store) {
+	user, pass := os.Getenv("ADMIN_USER"), os.Getenv("ADMIN_PASS")
+	if user == "" || pass == "" {
+		user, pass = "admin", "admin"
+		log.Print("WARNING: ADMIN_USER/ADMIN_PASS not set; using admin/admin locally only")
+	}
+	hash, err := auth.HashPassword(pass)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := st.EnsureAdmin(context.Background(), user, hash); err != nil {
+		log.Fatal(err)
+	}
+}
 
 func main() {
 	db, err := database.Open("debate.db")
@@ -25,6 +44,7 @@ func main() {
 	if err := st.InitSchema(context.Background()); err != nil {
 		log.Fatal(err)
 	}
+	seedAdmin(st)
 	svc := draw.CryptoDefaults(st)
 	hub := stream.New()
 	tmpl, err := handlers.LoadTemplates()
