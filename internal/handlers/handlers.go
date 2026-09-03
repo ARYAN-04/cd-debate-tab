@@ -12,7 +12,7 @@ import (
 // LoadTemplates parses the embedded template FS (html/template escapes).
 func LoadTemplates() (*template.Template, error) {
 	return template.ParseFS(tmplfs.FS,
-		"layout.html", "admin/*.html",
+		"admin/*.html",
 		"admin/partials/*.html", "public/*.html",
 		"public/partials/*.html")
 }
