@@ -10,10 +10,11 @@
 <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
 </head>
 <body>
-<div class="app">
-{{template "sidebar" "live"}}
-<div class="main">
-<div class="top"><div class="crumb">debate tab / <b>Live draw</b></div></div>
+<div class="pubwrap">
+<header class="pubtop">
+<div class="wordmark">Debate Tab</div>
+{{if .IsAdmin}}<a class="btn ghost sm" href="/admin/teams">Open dashboard</a>{{else}}<a class="btn ghost sm" href="/login">Admin login</a>{{end}}
+</header>
 <div class="panel">
 <div class="h1">Live draw</div>
 <p class="sub">Updates automatically when a round is published.</p>
@@ -21,7 +22,6 @@
 <input class="txtin" style="margin-bottom:16px" type="search"
 name="q" placeholder="Search team or speaker…" hx-get="/draw/search" hx-target="#draw-grid" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms">
 <div id="draw-grid">{{template "draw_grid" .}}</div>
-</div>
 </div>
 </div>
 </body>

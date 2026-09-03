@@ -35,7 +35,20 @@ func (p Public) Index(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, "search failed")
 		return
 	}
-	render(w, p.Tmpl, "draw", map[string]any{"Allocs": allocs})
+	render(w, p.Tmpl, "draw", map[string]any{"Allocs": allocs, "IsAdmin": p.isAdmin(r)})
+}
+
+// isAdmin reports whether the request carries a live session cookie.
+func (p Public) isAdmin(r *http.Request) bool {
+	c, err := r.Cookie(auth.SessionCookie)
+	if err != nil || c.Value == "" {
+		return false
+	}
+	sess, err := p.Store.GetSessionByToken(r.Context(), c.Value)
+	if err != nil {
+		return false
+	}
+	return !auth.Expired(sess.ExpiresAt, time.Now())
 }
 
 // Search returns the capped LIKE-filtered grid partial.

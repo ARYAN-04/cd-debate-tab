@@ -8,11 +8,12 @@
 <link rel="stylesheet" href="/static/css/admin.css">
 </head>
 <body>
-<div class="app">
-{{template "sidebar" ""}}
-<div class="main">
-<div class="top"><div class="crumb">debate tab / <b>Login</b></div></div>
-<div class="panel">
+<div class="pubwrap">
+<header class="pubtop">
+<div class="wordmark">Debate Tab</div>
+<a class="btn ghost sm" href="/">View draw</a>
+</header>
+<div class="panel" style="max-width:520px">
 <div class="h1">Admin login</div>
 <p class="sub">Sessions last 24 hours.</p>
 <div class="set">
@@ -22,7 +23,6 @@
 <div><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
 <div><button class="btn" type="submit">Login</button></div>
 </form>
-</div>
 </div>
 </div>
 </div>

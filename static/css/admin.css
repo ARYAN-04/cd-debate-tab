@@ -33,16 +33,26 @@ a{color:inherit}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;border:1px solid var(--line);border-radius:99px;padding:3px 10px;color:var(--txt);white-space:nowrap}
 .i{width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block}.i.a{background:var(--amb)}
 .drop{margin-top:16px;border:1px dashed var(--line);border-radius:var(--r);padding:26px;text-align:center;color:var(--mut);background:var(--panel)}
-.drop input{margin-top:10px;color:var(--txt)}
+.drop input{display:block;margin:12px auto 0;color:var(--txt)}
+.drop .btn{margin-top:14px}
 .board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .col h2{margin-bottom:12px;font-size:15px;font-weight:600}.count{color:var(--mut);font-weight:400;font-size:12px}
 .tcard{background:#111;border:1px solid #2a2a2a;border-radius:6px;padding:10px 12px;margin-bottom:10px}
-.tcard b{display:block;font-size:13px}.tcard span{color:var(--mut);font-size:12px}
-.tcard .thead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tcard b{display:block;font-size:13px;margin-bottom:2px}.tcard span{color:var(--mut);font-size:12px}
+.tcard .thead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.tcard .thead b{margin-bottom:0}
+.spk{display:block;margin-bottom:6px}.spk:last-child{margin-bottom:0}
+.spk .btn{margin-left:8px}
+.subform{display:inline-flex;gap:8px;align-items:center;margin-top:8px}
+.c4 .btn{margin-left:6px}.c4 .btn:first-child{margin-left:0}
+/* Public pages: centered column, no admin sidebar. */
+.pubwrap{max-width:1020px;margin:0 auto;padding:0 32px 48px}
+.pubtop{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:#000;z-index:5}
 .badge{display:inline-block;background:rgba(245,165,36,.12);color:var(--amb);border:1px solid rgba(245,165,36,.4);border-radius:6px;font-size:12px;padding:3px 9px;margin-bottom:12px}
 .set{display:grid;gap:12px;max-width:520px}
-.set label{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.set form{display:grid;gap:14px}
+.set label{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
 .set input,.txtin{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--txt);padding:9px 12px;width:100%;font-size:13px}
 .txtin.sm{width:auto;padding:5px 9px;font-size:12px}
 .errbox{border:1px solid rgba(255,90,90,.5);border-radius:var(--r);padding:18px;background:rgba(255,90,90,.06);margin-bottom:16px}
