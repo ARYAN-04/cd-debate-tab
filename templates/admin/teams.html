@@ -4,11 +4,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{.CSRFToken}}">
 <title>Teams · Yellow-CD</title>
 <link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script src="/static/js/app.js" defer></script>
 </head>
-<body>
+<body hx-headers='js:{"X-CSRF-Token": getCsrfToken()}'>
 <div class="app">
 {{template "sidebar" "teams"}}
 <div class="main">
@@ -25,6 +27,7 @@
 <div class="set" style="margin-top:24px">
 <p class="lbl">Add team manually</p>
 <form action="/admin/teams/add" method="post">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 <div><label>Team name</label><input name="team_name" placeholder="Aurora" required></div>
 <div><label>Speaker 1</label><input name="speaker1" placeholder="M. Chen" required></div>
 <div><label>Speaker 2</label><input name="speaker2" placeholder="J. Okafor" required></div>
@@ -32,6 +35,7 @@
 </form>
 </div>
 <form class="drop" action="/admin/teams/import" method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 <div><b style="color:var(--txt)">Import CSV</b><br>Team Name, Speaker 1, Speaker 2 · 1 MB / 2000 rows max</div>
 <input type="file" name="csv" accept=".csv">
 <div><button class="btn sm" type="submit">Upload</button></div>

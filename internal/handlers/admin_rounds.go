@@ -70,7 +70,12 @@ func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 		}
 		rows = append(rows, RoundRow{Round: rd, HasDraft: has})
 	}
-	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows, "HideDone": hideDone, "DoneCount": done})
+	render(w, a.Tmpl, "rounds", map[string]any{
+		"Rounds":    rows,
+		"HideDone":  hideDone,
+		"DoneCount": done,
+		"CSRFToken": auth.CSRFToken(r),
+	})
 }
 
 // Create stores a new draft round. A taken order re-renders the list with
@@ -142,8 +147,13 @@ func (a AdminRounds) renderIndexWithConflict(w http.ResponseWriter, r *http.Requ
 		}
 		rows = append(rows, RoundRow{Round: rd, HasDraft: has})
 	}
-	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows, "HideDone": false, "DoneCount": done,
-		"Conflict": conflictForm{Name: name, Order: order, NumRooms: rooms, Existing: existing}})
+	render(w, a.Tmpl, "rounds", map[string]any{
+		"Rounds":    rows,
+		"HideDone":  false,
+		"DoneCount": done,
+		"Conflict":  conflictForm{Name: name, Order: order, NumRooms: rooms, Existing: existing},
+		"CSRFToken": auth.CSRFToken(r),
+	})
 }
 
 // Visibility hides or unhides a round from the public draw.
@@ -186,7 +196,13 @@ func (a AdminRounds) Draft(w http.ResponseWriter, r *http.Request) {
 	}
 	rooms := GroupDraft(allocs)
 	d, bad := Imbalance(rooms)
-	render(w, a.Tmpl, "draft", DraftData{Round: round, Rooms: rooms, Imbalanced: bad, Delta: d})
+	render(w, a.Tmpl, "draft", DraftData{
+		Round:      round,
+		Rooms:      rooms,
+		Imbalanced: bad,
+		Delta:      d,
+		CSRFToken:  auth.CSRFToken(r),
+	})
 }
 
 // draftCanvas re-renders the #draft-canvas fragment after mutations.
@@ -203,7 +219,13 @@ func (a AdminRounds) draftCanvas(w http.ResponseWriter, r *http.Request, roundID
 	}
 	rooms := GroupDraft(allocs)
 	d, bad := Imbalance(rooms)
-	render(w, a.Tmpl, "draft_canvas", DraftData{Round: round, Rooms: rooms, Imbalanced: bad, Delta: d})
+	render(w, a.Tmpl, "draft_canvas", DraftData{
+		Round:      round,
+		Rooms:      rooms,
+		Imbalanced: bad,
+		Delta:      d,
+		CSRFToken:  auth.CSRFToken(r),
+	})
 }
 
 // MoveTeam relocates a team and returns the #draft-canvas fragment.

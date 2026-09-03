@@ -1,4 +1,6 @@
 function getCsrfToken() {
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  if (meta && meta.content) return meta.content;
   var m = document.cookie.match(/(?:^|;\s*)csrf=([^;]+)/);
   return m ? decodeURIComponent(m[1]) : "";
 }
@@ -8,6 +10,8 @@ function getCsrfToken() {
 // nodes, so Sortable must be (re-)attached after every swap.
 function initSortable(root) {
   if (typeof Sortable === "undefined") return;
+  var status = document.body.getAttribute("data-round-status");
+  if (status && status !== "draft") return;
   root.querySelectorAll(".sortable-list").forEach(function (el) {
     if (el.dataset.sortableOn) return;
     el.dataset.sortableOn = "1";
@@ -59,12 +63,12 @@ document.addEventListener("DOMContentLoaded", function () {
   initSortable(document);
 });
 // HTMX fragment swaps (e.g. Flip sides) replace the lists: re-attach.
-document.body.addEventListener("htmx:afterSwap", function (e) {
+document.addEventListener("htmx:afterSwap", function (e) {
   initSortable(e.target);
 });
 
 // Attach CSRF header to every HTMX request.
-document.body.addEventListener("htmx:configRequest", function (evt) {
+document.addEventListener("htmx:configRequest", function (evt) {
   var tok = getCsrfToken();
   if (tok) evt.detail.headers["X-CSRF-Token"] = tok;
 });

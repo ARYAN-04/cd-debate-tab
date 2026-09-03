@@ -41,7 +41,10 @@ func (a AdminTeams) Index(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, "list failed")
 		return
 	}
-	render(w, a.Tmpl, "teams", map[string]any{"Teams": teams})
+	render(w, a.Tmpl, "teams", map[string]any{
+		"Teams":     teams,
+		"CSRFToken": auth.CSRFToken(r),
+	})
 }
 
 // Add creates one team from the manual form (same rules as CSV rows).
@@ -52,7 +55,11 @@ func (a AdminTeams) Add(w http.ResponseWriter, r *http.Request) {
 			httpErr(w, 500, "list failed")
 			return
 		}
-		render(w, a.Tmpl, "teams", map[string]any{"Teams": teams, "Err": reason})
+		render(w, a.Tmpl, "teams", map[string]any{
+			"Teams":     teams,
+			"Err":       reason,
+			"CSRFToken": auth.CSRFToken(r),
+		})
 	}
 	team, s1, s2 := strings.TrimSpace(r.FormValue("team_name")),
 		strings.TrimSpace(r.FormValue("speaker1")), strings.TrimSpace(r.FormValue("speaker2"))
@@ -103,7 +110,10 @@ func (a AdminTeams) Import(w http.ResponseWriter, r *http.Request) {
 		errs = append(errs, draw.RowError{Line: c.Line, Raw: c.Name, Reason: "duplicate team"})
 	}
 	if len(errs) > 0 {
-		render(w, a.Tmpl, "import_errors", map[string]any{"Errs": errs})
+		render(w, a.Tmpl, "import_errors", map[string]any{
+			"Errs":      errs,
+			"CSRFToken": auth.CSRFToken(r),
+		})
 		return
 	}
 	http.Redirect(w, r, "/admin/teams", http.StatusSeeOther)
@@ -127,7 +137,10 @@ func (a AdminTeams) ManualBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(errs) > 0 {
-		render(w, a.Tmpl, "import_errors", map[string]any{"Errs": errs})
+		render(w, a.Tmpl, "import_errors", map[string]any{
+			"Errs":      errs,
+			"CSRFToken": auth.CSRFToken(r),
+		})
 		return
 	}
 	http.Redirect(w, r, "/admin/teams", http.StatusSeeOther)

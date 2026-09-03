@@ -49,6 +49,7 @@ type DraftData struct {
 	Rooms      []RoomGroup
 	Imbalanced bool
 	Delta      int
+	CSRFToken  string
 }
 
 // GroupDraft buckets flat allocations into room -> team cards.

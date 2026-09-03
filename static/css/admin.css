@@ -58,6 +58,7 @@ a{color:inherit}
 .sortable-list{min-height:90px;padding-bottom:30px;border-radius:6px}
 .tcard{border-bottom:1px solid var(--line);padding:12px 4px;margin-bottom:2px;cursor:grab}
 .tcard:active{cursor:grabbing}
+.tcard.locked,.tcard.locked:active{cursor:default}
 .tcard b{display:block;font-size:15px;margin-bottom:2px}.tcard span{color:var(--mut);font-size:14px}
 .tcard .thead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
 .tcard .thead b{margin-bottom:0}

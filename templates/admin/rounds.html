@@ -4,11 +4,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{.CSRFToken}}">
 <title>Rounds · Yellow-CD</title>
 <link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script src="/static/js/app.js" defer></script>
 </head>
-<body>
+<body hx-headers='js:{"X-CSRF-Token": getCsrfToken()}'>
 <div class="app">
 {{template "sidebar" "rounds"}}
 <div class="main">
@@ -21,6 +23,7 @@
 <h2>Order {{.Conflict.Order}} is taken by “{{.Conflict.Existing}}”.</h2>
 <p class="mut" style="margin-bottom:12px">Shift {{.Conflict.Existing}} and later rounds forward to make room for “{{.Conflict.Name}}”, or go back and pick another order.</p>
 <form action="/admin/rounds" method="post">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <input type="hidden" name="mode" value="shift">
 <input type="hidden" name="name" value="{{.Conflict.Name}}">
 <input type="hidden" name="round_order" value="{{.Conflict.Order}}">
@@ -40,15 +43,17 @@
 <div class="c2">#{{.Round.RoundOrder}}</div>
 <div class="c3">{{if eq .Round.Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Round.Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}{{if .Round.IsHidden}} <span class="pill"><i class="i a"></i>hidden</span>{{end}}</div>
 <div class="c4">
-{{if .HasDraft}}<a class="btn ghost sm" href="/admin/rounds/{{.Round.ID}}/draft">Open</a>{{end}}
+{{if .HasDraft}}<a class="btn ghost sm" href="/admin/rounds/{{.Round.ID}}/draft">{{if eq .Round.Status "draft"}}Open draft{{else}}View draw{{end}}</a>{{end}}
 {{if eq .Round.Status "draft"}}
 <form class="subform" action="/admin/rounds/generate" method="post">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <input type="hidden" name="round_id" value="{{.Round.ID}}">
 <button class="btn ghost sm" type="submit">{{if .HasDraft}}Re-generate{{else}}Generate{{end}}</button>
 </form>
 {{end}}
 {{if ne .Round.Status "draft"}}
 <form class="subform" action="/admin/rounds/{{.Round.ID}}/visibility" method="post">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <input type="hidden" name="hidden" value="{{if .Round.IsHidden}}0{{else}}1{{end}}">
 <button class="btn ghost sm" type="submit">{{if .Round.IsHidden}}Unhide{{else}}Hide{{end}}</button>
 </form>
@@ -62,6 +67,7 @@
 <div class="set" style="margin-top:24px">
 <p class="lbl">New round</p>
 <form action="/admin/rounds" method="post">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
 <div><label>Name</label><input name="name" placeholder="Round 1" required></div>
 <div><label>Order</label><input name="round_order" placeholder="1" required></div>
 <div><label>Rooms</label><input name="num_rooms" placeholder="2" required></div>

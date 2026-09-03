@@ -7,12 +7,12 @@
 {{range .Rooms}}
 <section class="col" data-room-id="{{.ID}}">
 <h2>{{.Name}} <span class="count">· {{len .Cards}}</span></h2>
-<div class="sortable-list" data-room-id="{{.ID}}">
+<div class="{{if eq $.Round.Status "draft"}}sortable-list{{else}}readonly-list{{end}}" data-room-id="{{.ID}}">
 {{range .Cards}}
-<article class="tcard" data-team-id="{{.TeamID}}">
+<article class="tcard{{if ne $.Round.Status "draft"}} locked{{end}}" data-team-id="{{.TeamID}}">
 <div class="thead">
 <strong>{{.TeamName}}</strong>
-<button class="btn ghost sm" hx-post="/admin/rounds/{{$.Round.ID}}/teams/{{.TeamID}}/flip-sides" hx-target="#draft-canvas" hx-swap="outerHTML">Flip sides</button>
+{{if eq $.Round.Status "draft"}}<button class="btn ghost sm" hx-post="/admin/rounds/{{$.Round.ID}}/teams/{{.TeamID}}/flip-sides" hx-target="#draft-canvas" hx-swap="outerHTML">Flip sides</button>{{end}}
 </div>
 {{range .Speakers}}<span>{{.Speaker}} · {{.Allocation.Side}}</span>{{end}}
 </article>

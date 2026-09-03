@@ -4,12 +4,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{.CSRFToken}}">
 <title>Draft {{.Round.Name}} · Yellow-CD</title>
 <link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
-<body data-round-id="{{.Round.ID}}">
+<body data-round-id="{{.Round.ID}}" data-round-status="{{.Round.Status}}" hx-headers='js:{"X-CSRF-Token": getCsrfToken()}'>
 <div class="app">
 {{template "sidebar" "rounds"}}
 <div class="main">
@@ -17,11 +18,15 @@
 <div class="panel">
 <a class="btn ghost sm" href="/admin/rounds">← Rounds</a>
 <div class="h1" style="margin-top:16px">Draft · {{.Round.Name}}</div>
-<p class="sub">Drag cards between rooms. Status: {{.Round.Status}} · bias counts published rounds only.</p>
+{{if eq .Round.Status "draft"}}
+<p class="sub">Drag cards between rooms. Status: draft · bias counts published rounds only.</p>
+{{else}}
+<p class="sub">Status: {{.Round.Status}} · locked for editing (moves and side-flips disabled).</p>
+{{end}}
 {{template "draft_canvas" .}}
 <div class="actions">
-{{if eq .Round.Status "draft"}}<form action="/admin/rounds/{{.Round.ID}}/publish" method="post"><button class="btn sm" type="submit">Publish</button></form>{{end}}
-{{if eq .Round.Status "published"}}<form action="/admin/rounds/{{.Round.ID}}/conclude" method="post"><button class="btn ghost sm" type="submit">Conclude</button></form>{{end}}
+{{if eq .Round.Status "draft"}}<form action="/admin/rounds/{{.Round.ID}}/publish" method="post"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="btn sm" type="submit">Publish</button></form>{{end}}
+{{if eq .Round.Status "published"}}<form action="/admin/rounds/{{.Round.ID}}/conclude" method="post"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="btn ghost sm" type="submit">Conclude</button></form>{{end}}
 </div>
 </div>
 </div>
