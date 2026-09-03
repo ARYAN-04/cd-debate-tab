@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS rounds (
     round_order INTEGER NOT NULL UNIQUE,  -- 1, 2, 3...
     num_rooms INTEGER NOT NULL CHECK(num_rooms > 0),
     status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft', 'published', 'concluded')),
+    is_hidden INTEGER NOT NULL DEFAULT 0 CHECK(is_hidden IN (0,1)), -- 1 = hidden from public draw
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 

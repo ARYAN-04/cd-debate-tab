@@ -37,6 +37,7 @@ func RegisterAdminRounds(mux *http.ServeMux, a AdminRounds) {
 	mux.Handle("POST /admin/rounds/{roundID}/teams/{teamID}/flip-sides", g(a.FlipSides))
 	mux.Handle("POST /admin/rounds/{roundID}/publish", g(a.Publish))
 	mux.Handle("POST /admin/rounds/{roundID}/conclude", g(a.Conclude))
+	mux.Handle("POST /admin/rounds/{roundID}/visibility", g(a.Visibility))
 }
 
 // RoundRow pairs a round with whether it has a generated draft to open.
@@ -135,6 +136,17 @@ func (a AdminRounds) renderIndexWithConflict(w http.ResponseWriter, r *http.Requ
 	}
 	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows, "HideDone": false, "DoneCount": done,
 		"Conflict": conflictForm{Name: name, Order: order, NumRooms: rooms, Existing: existing}})
+}
+
+// Visibility hides or unhides a round from the public draw.
+// Status is untouched: hiding never unpublishes.
+func (a AdminRounds) Visibility(w http.ResponseWriter, r *http.Request) {
+	hide := r.FormValue("hidden") == "1" || r.FormValue("hidden") == "true"
+	if err := a.Store.SetRoundHidden(r.Context(), r.PathValue("roundID"), hide); err != nil {
+		httpErr(w, 500, "visibility failed")
+		return
+	}
+	http.Redirect(w, r, "/admin/rounds", http.StatusSeeOther)
 }
 
 // Generate runs chunking+balancing and persists the draft via the service.

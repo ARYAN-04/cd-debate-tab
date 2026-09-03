@@ -34,6 +34,7 @@ type Round struct {
 	RoundOrder int
 	NumRooms   int
 	Status     string
+	IsHidden   bool
 	CreatedAt  time.Time
 }
 
@@ -134,6 +135,7 @@ CREATE TABLE IF NOT EXISTS rounds (
     round_order INTEGER NOT NULL UNIQUE,
     num_rooms INTEGER NOT NULL CHECK(num_rooms > 0),
     status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft', 'published', 'concluded')),
+    is_hidden INTEGER NOT NULL DEFAULT 0 CHECK(is_hidden IN (0,1)),
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE TABLE IF NOT EXISTS rooms (
@@ -221,6 +223,38 @@ func scanTime(dest *time.Time, v any) error {
 
 func (s *Store) InitSchema(ctx context.Context) error {
 	if _, err := s.DB.ExecContext(ctx, schema); err != nil {
+		return err
+	}
+	return s.migrate(ctx)
+}
+
+// migrate adds columns that postdate existing databases. SQLite has no
+// ADD COLUMN IF NOT EXISTS, so probe table_info first.
+func (s *Store) migrate(ctx context.Context) error {
+	rows, err := s.DB.QueryContext(ctx, `PRAGMA table_info(rounds)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	found := false
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt any
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == "is_hidden" {
+			found = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if !found {
+		_, err = s.DB.ExecContext(ctx,
+			`ALTER TABLE rounds ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0 CHECK(is_hidden IN (0,1))`)
 		return err
 	}
 	return nil
@@ -571,7 +605,7 @@ func (s *Store) CreateRoom(ctx context.Context, roundID, name string) (Room, err
 
 func (s *Store) ListRounds(ctx context.Context) ([]Round, error) {
 	rows, err := s.DB.QueryContext(ctx,
-		`SELECT id, name, round_order, num_rooms, status, created_at FROM rounds ORDER BY round_order`)
+		`SELECT id, name, round_order, num_rooms, status, is_hidden, created_at FROM rounds ORDER BY round_order`)
 	if err != nil {
 		return nil, err
 	}
@@ -580,9 +614,11 @@ func (s *Store) ListRounds(ctx context.Context) ([]Round, error) {
 	for rows.Next() {
 		var r Round
 		var created any
-		if err := rows.Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &created); err != nil {
+		var hidden int
+		if err := rows.Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &hidden, &created); err != nil {
 			return nil, err
 		}
+		r.IsHidden = hidden == 1
 		if err := scanTime(&r.CreatedAt, created); err != nil {
 			return nil, err
 		}
@@ -597,15 +633,17 @@ func (s *Store) ListRounds(ctx context.Context) ([]Round, error) {
 func (s *Store) GetRound(ctx context.Context, roundID string) (Round, error) {
 	var r Round
 	var created any
+	var hidden int
 	err := s.DB.QueryRowContext(ctx,
-		`SELECT id, name, round_order, num_rooms, status, created_at FROM rounds WHERE id = ?`,
-		roundID).Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &created)
+		`SELECT id, name, round_order, num_rooms, status, is_hidden, created_at FROM rounds WHERE id = ?`,
+		roundID).Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &hidden, &created)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Round{}, ErrNotFound
 		}
 		return Round{}, err
 	}
+	r.IsHidden = hidden == 1
 	if err := scanTime(&r.CreatedAt, created); err != nil {
 		return Round{}, err
 	}
@@ -759,11 +797,12 @@ func (s *Store) ShiftRoundsFrom(ctx context.Context, order int) error {
 	return nil
 }
 
-// ListPublicRounds returns published/concluded rounds, newest order first.
+// ListPublicRounds returns visible published/concluded rounds, newest first.
+// Hidden rounds stay published but vanish from the public draw.
 func (s *Store) ListPublicRounds(ctx context.Context) ([]Round, error) {
 	rows, err := s.DB.QueryContext(ctx,
-		`SELECT id, name, round_order, num_rooms, status, created_at FROM rounds
-		 WHERE status IN ('published','concluded') ORDER BY round_order DESC`)
+		`SELECT id, name, round_order, num_rooms, status, is_hidden, created_at FROM rounds
+		 WHERE status IN ('published','concluded') AND is_hidden = 0 ORDER BY round_order DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -772,15 +811,35 @@ func (s *Store) ListPublicRounds(ctx context.Context) ([]Round, error) {
 	for rows.Next() {
 		var r Round
 		var created any
-		if err := rows.Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &created); err != nil {
+		var hidden int
+		if err := rows.Scan(&r.ID, &r.Name, &r.RoundOrder, &r.NumRooms, &r.Status, &hidden, &created); err != nil {
 			return nil, err
 		}
+		r.IsHidden = hidden == 1
 		out = append(out, r)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return out, nil
+}
+
+// SetRoundHidden toggles public visibility without touching status:
+// a hidden round stays published but leaves the public draw and switcher.
+func (s *Store) SetRoundHidden(ctx context.Context, roundID string, hidden bool) error {
+	res, err := s.DB.ExecContext(ctx,
+		`UPDATE rounds SET is_hidden = ? WHERE id = ?`, boolToInt(hidden), roundID)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *Store) GetDraftAllocations(ctx context.Context, roundID string) ([]DraftAllocation, error) {
@@ -1033,7 +1092,7 @@ func (s *Store) searchAllocationsIn(ctx context.Context, query, roundID string, 
 	pattern := "%" + escapeLike(query) + "%"
 	statusFilter := ""
 	if publicOnly {
-		statusFilter = `JOIN rounds rd ON rd.id = a.round_id AND rd.status IN ('published','concluded')`
+		statusFilter = `JOIN rounds rd ON rd.id = a.round_id AND rd.status IN ('published','concluded') AND rd.is_hidden = 0`
 	}
 	roundFilter := ""
 	args := []any{pattern, pattern}

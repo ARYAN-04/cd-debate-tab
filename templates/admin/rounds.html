@@ -38,13 +38,19 @@
 <div class="row">
 <div class="c1">{{.Round.Name}} · {{.Round.NumRooms}} rooms</div>
 <div class="c2">#{{.Round.RoundOrder}}</div>
-<div class="c3">{{if eq .Round.Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Round.Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}</div>
+<div class="c3">{{if eq .Round.Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Round.Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}{{if .Round.IsHidden}} <span class="pill"><i class="i a"></i>hidden</span>{{end}}</div>
 <div class="c4">
 {{if .HasDraft}}<a class="btn ghost sm" href="/admin/rounds/{{.Round.ID}}/draft">Open</a>{{end}}
 <form class="subform" action="/admin/rounds/generate" method="post">
 <input type="hidden" name="round_id" value="{{.Round.ID}}">
 <button class="btn ghost sm" type="submit">{{if .HasDraft}}Re-generate{{else}}Generate{{end}}</button>
 </form>
+{{if ne .Round.Status "draft"}}
+<form class="subform" action="/admin/rounds/{{.Round.ID}}/visibility" method="post">
+<input type="hidden" name="hidden" value="{{if .Round.IsHidden}}0{{else}}1{{end}}">
+<button class="btn ghost sm" type="submit">{{if .Round.IsHidden}}Unhide{{else}}Hide{{end}}</button>
+</form>
+{{end}}
 </div>
 </div>
 {{else}}

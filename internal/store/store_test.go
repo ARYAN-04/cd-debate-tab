@@ -431,3 +431,52 @@ func TestPublicSearchScopesRound(t *testing.T) {
 		t.Fatalf("unscoped search = %d rows, %v; want 4", len(all), err)
 	}
 }
+
+func TestHiddenRoundLeavesPublic(t *testing.T) {
+	st, ctx := testStore(t)
+	tw := mustTeam(t, st, ctx, "Iota", "Ian", "Ivy")
+	r := mustRound(t, st, ctx, "Round 1", 1, 1)
+	room, _ := st.CreateRoom(ctx, r.ID, "Room A")
+	if err := st.SaveDraft(ctx, r.ID,
+		[]Room{{ID: room.ID, RoundID: r.ID, Name: room.Name}},
+		[]Allocation{
+			{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[0].ID, Side: "for"},
+			{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[1].ID, Side: "against"},
+		}); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := st.Publish(ctx, r.ID); err != nil || !ok {
+		t.Fatalf("publish = %v, %v", ok, err)
+	}
+	if err := st.SetRoundHidden(ctx, r.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetRound(ctx, r.ID)
+	if err != nil || !got.IsHidden {
+		t.Fatalf("round hidden = %+v, %v", got, err)
+	}
+	pub, err := st.ListPublicRounds(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pub) != 0 {
+		t.Fatalf("hidden round listed publicly: %d rows", len(pub))
+	}
+	res, err := st.SearchPublicAllocations(ctx, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("hidden round searched publicly: %d rows", len(res))
+	}
+	if err := st.SetRoundHidden(ctx, r.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	pub, err = st.ListPublicRounds(ctx)
+	if err != nil || len(pub) != 1 {
+		t.Fatalf("unhidden round missing: %+v, %v", pub, err)
+	}
+	if err := st.SetRoundHidden(ctx, "nope", true); err != ErrNotFound {
+		t.Fatalf("hide missing round = %v, want ErrNotFound", err)
+	}
+}

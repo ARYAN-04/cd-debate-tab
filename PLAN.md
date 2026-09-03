@@ -233,6 +233,7 @@ Param naming is consistent: `{roundID}`, `{teamID}`, `{speakerID}`.
 | `POST` | `/admin/rounds/{roundID}/teams/{teamID}/flip-sides` | Yes | Atomic team side inversion |
 | `POST` | `/admin/rounds/{roundID}/publish` | Yes | Lock draft, set `published` (guarded `WHERE status='draft'`), broadcast SSE |
 | `POST` | `/admin/rounds/{roundID}/conclude` | Yes | Mark round `concluded` (only from `published`, frozen permanently) |
+| `POST` | `/admin/rounds/{roundID}/visibility` | Yes | Hide/unhide round from public draw (body: `hidden=1/0`; status untouched) |
 
 Auth: bcrypt cost 12, HttpOnly + SameSite=Lax (+ Secure in prod) cookies,
 per-session CSRF token checked on mutating routes including HTMX `HX-Request`.
