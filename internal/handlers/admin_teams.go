@@ -100,9 +100,30 @@ func (a AdminTeams) ToggleActive(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 400, "team_id required")
 		return
 	}
-	active := r.FormValue("active") == "1" || r.FormValue("active") == "true"
-	if err := a.Store.SetTeamActive(r.Context(), id, !active); err != nil {
+	teams, err := a.Store.ListTeamsWithSpeakers(r.Context())
+	if err != nil {
+		httpErr(w, 500, "list failed")
+		return
+	}
+	var row *store.TeamWithSpeakers
+	for i, tw := range teams {
+		if tw.Team.ID == id {
+			row = &teams[i]
+			break
+		}
+	}
+	if row == nil {
+		httpErr(w, 404, "team not found")
+		return
+	}
+	if err := a.Store.SetTeamActive(r.Context(), id, !row.Team.IsActive); err != nil {
 		httpErr(w, 500, "toggle failed")
+		return
+	}
+	row.Team.IsActive = !row.Team.IsActive
+	// HTMX swaps a row fragment; plain posts fall back to a full reload.
+	if r.Header.Get("HX-Request") == "true" {
+		render(w, a.Tmpl, "team_row", *row)
 		return
 	}
 	http.Redirect(w, r, "/admin/teams", http.StatusSeeOther)

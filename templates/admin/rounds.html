@@ -25,9 +25,9 @@
 <div class="c3">{{if eq .Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}</div>
 <div class="c4">
 <a class="btn ghost sm" href="/admin/rounds/{{.ID}}/draft">Open</a>
-<form style="display:inline" action="/admin/rounds/generate" method="post">
+<form class="subform" action="/admin/rounds/generate" method="post">
 <input type="hidden" name="round_id" value="{{.ID}}">
-<button class="linkbtn" type="submit">generate</button>
+<button class="btn ghost sm" type="submit">Generate</button>
 </form>
 </div>
 </div>

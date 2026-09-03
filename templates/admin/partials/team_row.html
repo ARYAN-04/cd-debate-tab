@@ -3,18 +3,18 @@
 <div class="c1">{{.Team.Name}}</div>
 <div class="c2">
 {{range .Speakers}}
-<span>{{.Name}}
-<button class="linkbtn" hx-patch="/admin/speakers/{{.ID}}/redact" hx-prompt="New name for {{.Name}}">redact</button>
+<span class="spk">{{.Name}}
+<button type="button" class="btn ghost sm" hx-patch="/admin/speakers/{{.ID}}/redact" hx-prompt="New name for {{.Name}}">Redact</button>
 </span>
 {{end}}
 </div>
 <div class="c3">{{if .Team.IsActive}}<span class="pill"><i class="i"></i>active</span>{{else}}<span class="pill"><i class="i a"></i>out</span>{{end}}</div>
 <div class="c4">
-<button class="btn ghost sm" hx-post="/admin/teams/toggle-active" hx-vals='{"team_id": "{{.Team.ID}}"}' hx-target="#team-{{.Team.ID}}" hx-swap="outerHTML">toggle</button>
-<form style="display:inline" action="/admin/teams/{{.Team.ID}}/substitute-speaker" method="post">
+<button type="button" class="btn ghost sm" hx-post="/admin/teams/toggle-active" hx-vals='{"team_id": "{{.Team.ID}}"}' hx-target="#team-{{.Team.ID}}" hx-swap="outerHTML">Toggle</button>
+<form class="subform" action="/admin/teams/{{.Team.ID}}/substitute-speaker" method="post">
 <input type="hidden" name="old_speaker_id" value="{{if .Speakers}}{{(index .Speakers 0).ID}}{{end}}">
 <input class="txtin sm" type="text" name="new_name" placeholder="New speaker" required>
-<button class="linkbtn" type="submit">sub</button>
+<button class="btn ghost sm" type="submit">Sub</button>
 </form>
 </div>
 </div>

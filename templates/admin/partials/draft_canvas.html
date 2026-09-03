@@ -12,7 +12,7 @@
 <article class="tcard" data-team-id="{{.TeamID}}">
 <div class="thead">
 <strong>{{.TeamName}}</strong>
-<button class="linkbtn" hx-post="/admin/rounds/{{$.Round.ID}}/teams/{{.TeamID}}/flip-sides" hx-target="#draft-canvas" hx-swap="outerHTML">Flip sides</button>
+<button class="btn ghost sm" hx-post="/admin/rounds/{{$.Round.ID}}/teams/{{.TeamID}}/flip-sides" hx-target="#draft-canvas" hx-swap="outerHTML">Flip sides</button>
 </div>
 {{range .Speakers}}<span>{{.Speaker}} · {{.Allocation.Side}}</span>{{end}}
 </article>
