@@ -1,4 +1,4 @@
-# cd-debate-tab
+# Yellow-CD
 
 Debate tournament tab engine: team ingestion (CSV or manual form),
 side-balanced draw generation, drag-and-drop draft editing, and live
@@ -27,10 +27,16 @@ published rounds are immutable (moves/flips refuse); rounds can be
 hidden from public view without unpublishing; the projector never
 sees drafts.
 
+Security & robustness:
+- CSRF protection across mutating actions via cookie and header/form tokens
+- Constant-time password validation and IP rate limiting against brute force
+- Periodic session cleanup and HTTP server timeout configurations
+- Single-transaction atomic CSV team imports with collision repairs
+
 ## Develop
 
 ```sh
-go test ./...              # unit tests (store, draw, auth, stream, httpx)
+go test ./...              # unit tests (store, draw, auth, stream, httpx, handlers)
 go build ./...             # full build
 make tailwind              # rebuild static/css/dist.css (needs tailwindcss CLI)
 ```
