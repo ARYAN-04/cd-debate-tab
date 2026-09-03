@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"html/template"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -91,6 +92,9 @@ func (p Public) Search(w http.ResponseWriter, r *http.Request) {
 	render(w, p.Tmpl, "draw_grid", map[string]any{"Rooms": GroupDraw(allocs)})
 }
 
+// dummyHash provides constant-time bcrypt verification when a user is not found.
+var dummyHash, _ = auth.HashPassword("invalid-password-never-matches")
+
 // loginLimiter caps POST /login attempts per IP (20/min) to slow brute force.
 type loginLimiter struct {
 	mu   sync.Mutex
@@ -98,22 +102,39 @@ type loginLimiter struct {
 }
 
 // allow reports whether ip may attempt login now, recording the attempt.
-func (l *loginLimiter) allow(ip string) bool {
+func (l *loginLimiter) allow(remoteAddr string) bool {
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		ip = remoteAddr
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := time.Now()
-	kept := make([]time.Time, 0, len(l.hits[ip]))
-	for _, t := range l.hits[ip] {
-		if now.Sub(t) < time.Minute {
-			kept = append(kept, t)
+	cutoff := now.Add(-time.Minute)
+	// Prune old entries to prevent unbounded memory growth.
+	for k, times := range l.hits {
+		var valid []time.Time
+		for _, t := range times {
+			if t.After(cutoff) {
+				valid = append(valid, t)
+			}
+		}
+		if len(valid) == 0 {
+			delete(l.hits, k)
+		} else {
+			l.hits[k] = valid
 		}
 	}
+	kept := l.hits[ip]
 	if len(kept) >= 20 {
-		l.hits[ip] = kept
 		return false
 	}
 	l.hits[ip] = append(kept, now)
 	return true
+}
+
+func isHTTPS(r *http.Request) bool {
+	return r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
 }
 
 // RegisterAuth wires login/logout; logout requires auth middleware.
@@ -134,7 +155,12 @@ func RegisterAuth(mux *http.ServeMux, s *store.Store, t *template.Template) {
 		}
 		username := strings.TrimSpace(r.FormValue("username"))
 		admin, err := s.GetAdminByUsername(r.Context(), username)
-		if err != nil || auth.CheckPassword(admin.PasswordHash, r.FormValue("password")) != nil {
+		hash := dummyHash
+		if err == nil {
+			hash = admin.PasswordHash
+		}
+		pwErr := auth.CheckPassword(hash, r.FormValue("password"))
+		if err != nil || pwErr != nil {
 			fail()
 			return
 		}
@@ -148,14 +174,14 @@ func RegisterAuth(mux *http.ServeMux, s *store.Store, t *template.Template) {
 			httpErr(w, 500, "session failed")
 			return
 		}
-		auth.SetSessionCookie(w, token, r.TLS != nil, exp)
+		auth.SetSessionCookie(w, token, isHTTPS(r), exp)
 		http.Redirect(w, r, "/admin/teams", http.StatusSeeOther)
 	})
-	mux.Handle("POST /logout", auth.RequireAuth(s, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /logout", auth.RequireAuth(s, auth.CSRFProtect(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie(auth.SessionCookie); err == nil {
 			_ = s.DeleteSession(r.Context(), c.Value)
 		}
 		auth.ClearSessionCookie(w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-	})))
+	}))))
 }
