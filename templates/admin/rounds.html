@@ -1,0 +1,52 @@
+{{define "rounds"}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rounds · Debate Tab</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+<div class="app">
+{{template "sidebar" "rounds"}}
+<div class="main">
+<div class="top"><div class="crumb">debate tab / <b>Rounds</b></div></div>
+<div class="panel">
+<div class="h1">Rounds</div>
+<p class="sub">draft → published → concluded, guarded in tx.</p>
+<p class="lbl">All rounds</p>
+<div class="box">
+{{range .Rounds}}
+<div class="row">
+<div class="c1">{{.Name}} · {{.NumRooms}} rooms</div>
+<div class="c2">#{{.RoundOrder}}</div>
+<div class="c3">{{if eq .Status "published"}}<span class="pill"><i class="i"></i>published</span>{{else if eq .Status "concluded"}}<span class="pill"><i class="i"></i>concluded</span>{{else}}<span class="pill"><i class="i a"></i>draft</span>{{end}}</div>
+<div class="c4">
+<a class="btn ghost sm" href="/admin/rounds/{{.ID}}/draft">Open</a>
+<form style="display:inline" action="/admin/rounds/generate" method="post">
+<input type="hidden" name="round_id" value="{{.ID}}">
+<button class="linkbtn" type="submit">generate</button>
+</form>
+</div>
+</div>
+{{else}}
+<div class="row"><div class="c2">No rounds yet. Create the first one below.</div></div>
+{{end}}
+</div>
+<div class="set" style="margin-top:24px">
+<p class="lbl">New round</p>
+<form action="/admin/rounds" method="post">
+<div><label>Name</label><input name="name" placeholder="Round 1" required></div>
+<div><label>Order</label><input name="round_order" placeholder="1" required></div>
+<div><label>Rooms</label><input name="num_rooms" placeholder="2" required></div>
+<div><button class="btn sm" type="submit">Create</button></div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+{{end}}

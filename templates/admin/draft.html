@@ -5,20 +5,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Draft {{.Round.Name}} · Debate Tab</title>
-<link rel="stylesheet" href="/static/css/dist.css">
+<link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen" data-round-id="{{.Round.ID}}">
-<main class="p-4 max-w-6xl mx-auto">
-<h1 class="text-2xl font-bold mb-1">Draft · {{.Round.Name}}</h1>
-<p class="text-sm text-slate-400 mb-4">Drag cards between rooms. Status: {{.Round.Status}}</p>
+<body data-round-id="{{.Round.ID}}">
+<div class="app">
+{{template "sidebar" "rounds"}}
+<div class="main">
+<div class="top"><div class="crumb">rounds / <b>Draft · {{.Round.Name}}</b></div></div>
+<div class="panel">
+<div class="h1">Draft · {{.Round.Name}}</div>
+<p class="sub">Drag cards between rooms. Status: {{.Round.Status}} · bias counts published rounds only.</p>
 {{template "draft_canvas" .}}
-<div class="mt-4 flex gap-2">
-<form action="/admin/rounds/{{.Round.ID}}/publish" method="post"><button class="px-3 py-1 bg-emerald-600 rounded text-sm">Publish</button></form>
-<form action="/admin/rounds/{{.Round.ID}}/conclude" method="post"><button class="px-3 py-1 bg-slate-700 rounded text-sm">Conclude</button></form>
+<div class="actions">
+<form action="/admin/rounds/{{.Round.ID}}/publish" method="post"><button class="btn sm" type="submit">Publish</button></form>
+<form action="/admin/rounds/{{.Round.ID}}/conclude" method="post"><button class="btn ghost sm" type="submit">Conclude</button></form>
 </div>
-</main>
+</div>
+</div>
+</div>
 <script src="/static/js/app.js"></script>
 </body>
 </html>

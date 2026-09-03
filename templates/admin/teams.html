@@ -5,23 +5,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teams · Debate Tab</title>
-<link rel="stylesheet" href="/static/css/dist.css">
+<link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-<main class="p-4 max-w-6xl mx-auto">
-<h1 class="text-2xl font-bold mb-4">Teams</h1>
-<form class="mb-6 flex gap-2" action="/admin/teams/import" method="post" enctype="multipart/form-data">
-<input type="file" name="csv" accept=".csv" class="text-sm">
-<button class="px-3 py-1 bg-emerald-600 rounded" type="submit">Import CSV</button>
-</form>
-<table class="w-full text-sm border border-slate-800">
-<thead><tr class="text-left text-slate-400"><th class="p-2">Team</th><th class="p-2">Speakers</th><th class="p-2">Active</th><th class="p-2">Actions</th></tr></thead>
-<tbody id="team-rows">
+<body>
+<div class="app">
+{{template "sidebar" "teams"}}
+<div class="main">
+<div class="top"><div class="crumb">debate tab / <b>Teams</b></div></div>
+<div class="panel">
+<div class="h1">Teams</div>
+<p class="sub">{{len .Teams}} teams · exactly 2 active speakers each.</p>
+<p class="lbl">Roster</p>
+<div class="box">
+<div class="row head"><div class="c1">Team</div><div class="c2">Speakers</div><div class="c3">Status</div><div class="c4">Actions</div></div>
 {{range .Teams}}{{template "team_row" .}}{{end}}
-</tbody>
-</table>
-</main>
+</div>
+<form class="drop" action="/admin/teams/import" method="post" enctype="multipart/form-data">
+<div><b style="color:var(--txt)">Import CSV</b><br>Team Name, Speaker 1, Speaker 2 · 1 MB / 2000 rows max</div>
+<input type="file" name="csv" accept=".csv">
+<div><button class="btn sm" type="submit">Upload</button></div>
+</form>
+</div>
+</div>
+</div>
 </body>
 </html>
 {{end}}

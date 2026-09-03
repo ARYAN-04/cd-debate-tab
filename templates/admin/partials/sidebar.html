@@ -1,0 +1,11 @@
+{{define "sidebar"}}
+<aside class="side">
+<div class="wordmark">Debate Tab</div>
+<nav class="nav">
+<a href="/admin/teams" class="{{if eq . "teams"}}on{{end}}">Teams</a>
+<a href="/admin/rounds" class="{{if eq . "rounds"}}on{{end}}">Rounds</a>
+<a href="/" class="{{if eq . "live"}}on{{end}}">Live draw</a>
+</nav>
+<div class="ava"><div class="dotA">A</div><span class="t">admin</span><form action="/logout" method="post"><button class="linkbtn" type="submit">Logout</button></form></div>
+</aside>
+{{end}}

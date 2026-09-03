@@ -45,9 +45,7 @@ func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 500, "list failed")
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<h1>Rounds</h1><form method="post" action="/admin/rounds"><input name="name"><input name="round_order"><input name="num_rooms"><button>Create</button></form>`))
-	_ = rounds
+	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rounds})
 }
 
 // Create stores a new draft round.
