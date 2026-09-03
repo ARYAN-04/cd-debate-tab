@@ -1,13 +1,15 @@
 {{define "draw_grid"}}
-<div id="draw-grid" class="grid gap-3 md:grid-cols-2">
+<div id="draw-grid">
+<div class="board" style="grid-template-columns:repeat(2,1fr)">
 {{range .Allocs}}
-<div class="rounded border border-slate-700 p-3">
-<div class="text-xs text-slate-400">{{.RoomName}}</div>
-<div class="font-bold">{{.TeamName}}</div>
-<div class="text-sm">{{.Speaker}} · <span class="uppercase">{{.Allocation.Side}}</span></div>
+<div class="tcard">
+<div class="mut" style="font-size:11px;text-transform:uppercase;letter-spacing:.07em">{{.RoomName}}</div>
+<b>{{.TeamName}}</b>
+<span>{{.Speaker}} · {{.Allocation.Side}}</span>
 </div>
 {{else}}
-<p class="text-slate-400 text-sm">No draw published yet.</p>
+<p class="mut">No draw published yet.</p>
 {{end}}
+</div>
 </div>
 {{end}}

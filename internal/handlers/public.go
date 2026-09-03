@@ -30,7 +30,7 @@ func RegisterPublic(mux *http.ServeMux, p Public) {
 
 // Index renders the public draw page with SSE listener.
 func (p Public) Index(w http.ResponseWriter, r *http.Request) {
-	allocs, err := p.Store.SearchAllocations(r.Context(), "")
+	allocs, err := p.Store.SearchPublicAllocations(r.Context(), "")
 	if err != nil {
 		httpErr(w, 500, "search failed")
 		return
@@ -40,7 +40,7 @@ func (p Public) Index(w http.ResponseWriter, r *http.Request) {
 
 // Search returns the capped LIKE-filtered grid partial.
 func (p Public) Search(w http.ResponseWriter, r *http.Request) {
-	allocs, err := p.Store.SearchAllocations(r.Context(), r.URL.Query().Get("q"))
+	allocs, err := p.Store.SearchPublicAllocations(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
 		httpErr(w, 500, "search failed")
 		return
@@ -75,29 +75,24 @@ func (l *loginLimiter) allow(ip string) bool {
 
 // RegisterAuth wires login/logout; logout requires auth middleware.
 func RegisterAuth(mux *http.ServeMux, s *store.Store, t *template.Template) {
-	_ = t
 	limiter := &loginLimiter{hits: map[string][]time.Time{}}
 	mux.HandleFunc("GET /login", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		msg := ""
-		if r.URL.Query().Get("err") != "" {
-			msg = `<p style="color:red">Invalid username or password.</p>`
-		}
-		_, _ = w.Write([]byte(msg + `<form method="post" action="/login"><input name="username" autocomplete="username"><input name="password" type="password" autocomplete="current-password"><button>Login</button></form>`))
+		render(w, t, "login", map[string]any{"Err": r.URL.Query().Get("err") != ""})
 	})
 	mux.HandleFunc("POST /login", func(w http.ResponseWriter, r *http.Request) {
+		fail := func() { http.Redirect(w, r, "/login?err=1", http.StatusSeeOther) }
 		if !limiter.allow(r.RemoteAddr) {
 			httpErr(w, http.StatusTooManyRequests, "too many attempts")
 			return
 		}
 		if err := r.ParseForm(); err != nil {
-			http.Redirect(w, r, "/login?err=1", http.StatusSeeOther)
+			fail()
 			return
 		}
 		username := strings.TrimSpace(r.FormValue("username"))
 		admin, err := s.GetAdminByUsername(r.Context(), username)
 		if err != nil || auth.CheckPassword(admin.PasswordHash, r.FormValue("password")) != nil {
-			http.Redirect(w, r, "/login?err=1", http.StatusSeeOther)
+			fail()
 			return
 		}
 		token, err := auth.GenerateToken()

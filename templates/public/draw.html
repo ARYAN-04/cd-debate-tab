@@ -5,18 +5,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Draw · Debate Tab</title>
-<link rel="stylesheet" href="/static/css/dist.css">
+<link rel="stylesheet" href="/static/css/admin.css">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-<main class="p-4 max-w-6xl mx-auto">
-<h1 class="text-3xl font-bold mb-4">Draw</h1>
+<body>
+<div class="app">
+{{template "sidebar" "live"}}
+<div class="main">
+<div class="top"><div class="crumb">debate tab / <b>Live draw</b></div></div>
+<div class="panel">
+<div class="h1">Live draw</div>
+<p class="sub">Updates automatically when a round is published.</p>
 <div hx-ext="sse" sse-connect="/events" sse-swap="draw-published" hx-target="#draw-grid" hx-swap="innerHTML"></div>
-<input class="w-full mb-4 px-3 py-2 rounded bg-slate-900 border border-slate-700" type="search"
+<input class="txtin" style="margin-bottom:16px" type="search"
 name="q" placeholder="Search team or speaker…" hx-get="/draw/search" hx-target="#draw-grid" hx-swap="innerHTML" hx-trigger="keyup changed delay:300ms">
 <div id="draw-grid">{{template "draw_grid" .}}</div>
-</main>
+</div>
+</div>
+</div>
 </body>
 </html>
 {{end}}

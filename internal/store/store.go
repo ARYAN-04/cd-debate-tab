@@ -917,14 +917,29 @@ func escapeLike(q string) string {
 
 // SearchAllocations uses parameterized LIKE ESCAPE, capped at 100 rows.
 func (s *Store) SearchAllocations(ctx context.Context, query string) ([]DraftAllocation, error) {
+	return s.searchAllocations(ctx, query, false)
+}
+
+// SearchPublicAllocations matches SearchAllocations but only over
+// published/concluded rounds, so drafts never leak to the public screen.
+func (s *Store) SearchPublicAllocations(ctx context.Context, query string) ([]DraftAllocation, error) {
+	return s.searchAllocations(ctx, query, true)
+}
+
+func (s *Store) searchAllocations(ctx context.Context, query string, publicOnly bool) ([]DraftAllocation, error) {
 	pattern := "%" + escapeLike(query) + "%"
+	statusFilter := ""
+	if publicOnly {
+		statusFilter = `JOIN rounds rd ON rd.id = a.round_id AND rd.status IN ('published','concluded')`
+	}
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT `+draftAllocationCols+`
 		 FROM allocations a
 		 JOIN teams t ON t.id = a.team_id
 		 JOIN speakers s ON s.id = a.speaker_id
 		 JOIN rooms r ON r.id = a.room_id
-		 WHERE t.name LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\'
+		 `+statusFilter+`
+		 WHERE (t.name LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\')
 		 ORDER BY r.name, t.name, s.name
 		 LIMIT 100`, pattern, pattern)
 	if err != nil {

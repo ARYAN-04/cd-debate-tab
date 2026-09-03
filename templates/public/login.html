@@ -1,0 +1,31 @@
+{{define "login"}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login · Debate Tab</title>
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<div class="app">
+{{template "sidebar" ""}}
+<div class="main">
+<div class="top"><div class="crumb">debate tab / <b>Login</b></div></div>
+<div class="panel">
+<div class="h1">Admin login</div>
+<p class="sub">Sessions last 24 hours.</p>
+<div class="set">
+{{if .Err}}<div class="errbox"><h2>Invalid username or password.</h2></div>{{end}}
+<form action="/login" method="post">
+<div><label>Username</label><input name="username" autocomplete="username" required></div>
+<div><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
+<div><button class="btn" type="submit">Login</button></div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+{{end}}

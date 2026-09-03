@@ -315,3 +315,36 @@ func TestSessionsAndSearch(t *testing.T) {
 		t.Fatalf("search matched %d rows, want 1", len(res))
 	}
 }
+
+func TestPublicSearchHidesDraft(t *testing.T) {
+	st, ctx := testStore(t)
+	tw := mustTeam(t, st, ctx, "Zeta", "Zed", "Zoe")
+	r := mustRound(t, st, ctx, "Round 1", 1, 1)
+	room, _ := st.CreateRoom(ctx, r.ID, "Room A")
+	err := st.SaveDraft(ctx, r.ID,
+		[]Room{{ID: room.ID, RoundID: r.ID, Name: room.Name}},
+		[]Allocation{
+			{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[0].ID, Side: "for"},
+			{RoundID: r.ID, RoomID: room.ID, TeamID: tw.Team.ID, SpeakerID: tw.Speakers[1].ID, Side: "against"},
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := st.SearchPublicAllocations(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pub) != 0 {
+		t.Fatalf("draft leaked to public search: %d rows", len(pub))
+	}
+	if ok, err := st.Publish(ctx, r.ID); err != nil || !ok {
+		t.Fatalf("publish = %v, %v", ok, err)
+	}
+	pub, err = st.SearchPublicAllocations(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pub) != 2 {
+		t.Fatalf("public search matched %d rows, want 2", len(pub))
+	}
+}
