@@ -399,58 +399,63 @@ func (s *Store) CreateTeam(ctx context.Context, name, speaker1, speaker2 string)
 
 func (s *Store) ListTeamsWithSpeakers(ctx context.Context) ([]TeamWithSpeakers, error) {
 	rows, err := s.DB.QueryContext(ctx,
-		`SELECT id, name, is_active, created_at FROM teams ORDER BY name`)
+		`SELECT t.id, t.name, t.is_active, t.created_at,
+		        s.id, s.team_id, s.name, s.is_active, s.created_at
+		 FROM teams t
+		 LEFT JOIN speakers s ON s.team_id = t.id
+		 ORDER BY t.name, s.name`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var teams []TeamWithSpeakers
+	teamIndex := make(map[string]int)
 	for rows.Next() {
 		var t Team
-		var active int
-		var created any
-		if err := rows.Scan(&t.ID, &t.Name, &active, &created); err != nil {
+		var tActive int
+		var tCreated any
+		var spID, spTeamID, spName sql.NullString
+		var spActive sql.NullInt64
+		var spCreated any
+		if err := rows.Scan(&t.ID, &t.Name, &tActive, &tCreated,
+			&spID, &spTeamID, &spName, &spActive, &spCreated); err != nil {
 			return nil, err
 		}
-		t.IsActive = active == 1
-		if err := scanTime(&t.CreatedAt, created); err != nil {
-			return nil, err
+		idx, exists := teamIndex[t.ID]
+		if !exists {
+			t.IsActive = tActive == 1
+			if err := scanTime(&t.CreatedAt, tCreated); err != nil {
+				return nil, err
+			}
+			idx = len(teams)
+			teamIndex[t.ID] = idx
+			teams = append(teams, TeamWithSpeakers{Team: t})
 		}
-		teams = append(teams, TeamWithSpeakers{Team: t})
+		if spID.Valid {
+			sp := Speaker{
+				ID:       spID.String,
+				TeamID:   spTeamID.String,
+				Name:     spName.String,
+				IsActive: spActive.Int64 == 1,
+			}
+			if err := scanTime(&sp.CreatedAt, spCreated); err != nil {
+				return nil, err
+			}
+			teams[idx].Speakers = append(teams[idx].Speakers, sp)
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	for i := range teams {
-		srows, err := s.DB.QueryContext(ctx,
-			`SELECT id, team_id, name, is_active, created_at FROM speakers
-			 WHERE team_id = ? ORDER BY name`, teams[i].Team.ID)
-		if err != nil {
-			return nil, err
-		}
-		var sps []Speaker
-		for srows.Next() {
-			var sp Speaker
-			var active int
-			var created any
-			if err := srows.Scan(&sp.ID, &sp.TeamID, &sp.Name, &active, &created); err != nil {
-				srows.Close()
-				return nil, err
-			}
-			sp.IsActive = active == 1
-			if err := scanTime(&sp.CreatedAt, created); err != nil {
-				srows.Close()
-				return nil, err
-			}
-			sps = append(sps, sp)
-		}
-		srows.Close()
-		if err := srows.Err(); err != nil {
-			return nil, err
-		}
-		teams[i].Speakers = sps
-	}
 	return teams, nil
+}
+
+// CountActiveSpeakers returns the count of active speakers for a specific team.
+func (s *Store) CountActiveSpeakers(ctx context.Context, teamID string) (int, error) {
+	var n int
+	err := s.DB.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM speakers WHERE team_id = ? AND is_active = 1`, teamID).Scan(&n)
+	return n, err
 }
 
 func (s *Store) SetTeamActive(ctx context.Context, teamID string, active bool) error {
@@ -509,6 +514,9 @@ func (s *Store) SubstituteSpeaker(ctx context.Context, teamID, oldSpeakerID, new
 	}
 	if oldTeam != teamID {
 		return errors.New("store: speaker does not belong to team")
+	}
+	if oldActive != 1 {
+		return errors.New("store: speaker is not active")
 	}
 	var teammate string
 	err = tx.QueryRowContext(ctx,
@@ -1089,16 +1097,29 @@ func (s *Store) SearchPublicAllocations(ctx context.Context, query, roundID stri
 }
 
 func (s *Store) searchAllocationsIn(ctx context.Context, query, roundID string, publicOnly bool) ([]DraftAllocation, error) {
-	pattern := "%" + escapeLike(query) + "%"
 	statusFilter := ""
 	if publicOnly {
 		statusFilter = `JOIN rounds rd ON rd.id = a.round_id AND rd.status IN ('published','concluded') AND rd.is_hidden = 0`
 	}
-	roundFilter := ""
-	args := []any{pattern, pattern}
+	var whereClauses []string
+	var args []any
+	cleanQuery := strings.TrimSpace(query)
+	if cleanQuery != "" {
+		pattern := "%" + escapeLike(cleanQuery) + "%"
+		whereClauses = append(whereClauses, `(t.name LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\')`)
+		args = append(args, pattern, pattern)
+	}
 	if roundID != "" {
-		roundFilter = `AND a.round_id = ?`
+		whereClauses = append(whereClauses, `a.round_id = ?`)
 		args = append(args, roundID)
+	}
+	whereSQL := ""
+	if len(whereClauses) > 0 {
+		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+	limitSQL := ""
+	if cleanQuery != "" {
+		limitSQL = " LIMIT 100"
 	}
 	rows, err := s.DB.QueryContext(ctx,
 		`SELECT `+draftAllocationCols+`
@@ -1107,9 +1128,8 @@ func (s *Store) searchAllocationsIn(ctx context.Context, query, roundID string, 
 		 JOIN speakers s ON s.id = a.speaker_id
 		 JOIN rooms r ON r.id = a.room_id
 		 `+statusFilter+`
-		 WHERE (t.name LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\') `+roundFilter+`
-		 ORDER BY r.name, t.name, s.name
-		 LIMIT 100`, args...)
+		 `+whereSQL+`
+		 ORDER BY r.name, t.name, s.name`+limitSQL, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1126,4 +1146,109 @@ func (s *Store) searchAllocationsIn(ctx context.Context, query, roundID string, 
 		return nil, err
 	}
 	return out, nil
+}
+
+// DeleteExpiredSessions deletes sessions whose expiration is in the past.
+func (s *Store) DeleteExpiredSessions(ctx context.Context) (int64, error) {
+	res, err := s.DB.ExecContext(ctx,
+		`DELETE FROM sessions WHERE expires_at <= ?`, nowStr())
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+// ImportTeam represents one incoming team with two speakers.
+type ImportTeam struct {
+	Line     int
+	Name     string
+	Speaker1 string
+	Speaker2 string
+}
+
+// CreateTeamsBatch inserts non-conflicting teams in a single transaction.
+// Conflicting rows (duplicate in DB or batch) are returned as conflicts.
+func (s *Store) CreateTeamsBatch(ctx context.Context, teams []ImportTeam) (conflicts []ImportTeam, err error) {
+	if len(teams) == 0 {
+		return nil, nil
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT LOWER(name) FROM teams`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	taken := make(map[string]bool)
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		taken[n] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	var toInsert []ImportTeam
+	for _, tm := range teams {
+		cleanName := strings.TrimSpace(tm.Name)
+		lower := strings.ToLower(cleanName)
+		if taken[lower] {
+			conflicts = append(conflicts, tm)
+			continue
+		}
+		taken[lower] = true
+		toInsert = append(toInsert, tm)
+	}
+
+	if len(toInsert) == 0 {
+		return conflicts, nil
+	}
+
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	now := nowStr()
+	for _, tm := range toInsert {
+		teamID, err := NewID()
+		if err != nil {
+			return nil, err
+		}
+		sp1ID, err := NewID()
+		if err != nil {
+			return nil, err
+		}
+		sp2ID, err := NewID()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO teams (id, name, is_active, created_at) VALUES (?, ?, 1, ?)`,
+			teamID, strings.TrimSpace(tm.Name), now); err != nil {
+			return nil, err
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO speakers (id, team_id, name, is_active, created_at) VALUES (?, ?, ?, 1, ?)`,
+			sp1ID, teamID, strings.TrimSpace(tm.Speaker1), now); err != nil {
+			return nil, err
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO speakers (id, team_id, name, is_active, created_at) VALUES (?, ?, ?, 1, ?)`,
+			sp2ID, teamID, strings.TrimSpace(tm.Speaker2), now); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	committed = true
+	return conflicts, nil
 }

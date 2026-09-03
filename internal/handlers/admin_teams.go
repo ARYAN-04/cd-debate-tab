@@ -24,7 +24,7 @@ func NewAdminTeams(s *store.Store, t *template.Template) AdminTeams {
 
 // RegisterAdminTeams wires admin team routes onto mux.
 func RegisterAdminTeams(mux *http.ServeMux, a AdminTeams) {
-	g := func(h http.HandlerFunc) http.Handler { return auth.RequireAuth(a.Store, h) }
+	g := func(h http.HandlerFunc) http.Handler { return auth.RequireAuth(a.Store, auth.CSRFProtect(h)) }
 	mux.Handle("GET /admin/teams", g(a.Index))
 	mux.Handle("POST /admin/teams/import", g(a.Import))
 	mux.Handle("POST /admin/teams/manual-batch", g(a.ManualBatch))
@@ -71,9 +71,9 @@ func (a AdminTeams) Add(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/teams", http.StatusSeeOther)
 }
 
-// Import parses CSV, inserts valid rows, renders import_errors on row errors.
+// Import parses CSV, inserts valid rows in one transaction, renders import_errors on row errors.
 func (a AdminTeams) Import(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, draw.MaxCSVBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, draw.MaxCSVBytes+(64<<10))
 	f, _, err := r.FormFile("csv")
 	if err != nil {
 		httpErr(w, 400, "csv required")
@@ -85,10 +85,22 @@ func (a AdminTeams) Import(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, 400, "parse failed")
 		return
 	}
-	for _, v := range valid {
-		if _, err := a.Store.CreateTeam(r.Context(), v.Team, v.S1, v.S2); err != nil {
-			errs = append(errs, draw.RowError{Line: v.Line, Raw: v.Team, Reason: "duplicate team"})
+	items := make([]store.ImportTeam, len(valid))
+	for i, v := range valid {
+		items[i] = store.ImportTeam{
+			Line:     v.Line,
+			Name:     v.Team,
+			Speaker1: v.S1,
+			Speaker2: v.S2,
 		}
+	}
+	conflicts, err := a.Store.CreateTeamsBatch(r.Context(), items)
+	if err != nil {
+		httpErr(w, 500, "import failed")
+		return
+	}
+	for _, c := range conflicts {
+		errs = append(errs, draw.RowError{Line: c.Line, Raw: c.Name, Reason: "duplicate team"})
 	}
 	if len(errs) > 0 {
 		render(w, a.Tmpl, "import_errors", map[string]any{"Errs": errs})
@@ -180,13 +192,22 @@ func (a AdminTeams) Substitute(w http.ResponseWriter, r *http.Request) {
 
 // Redact renames a speaker in place via hx-patch.
 func (a AdminTeams) Redact(w http.ResponseWriter, r *http.Request) {
-	id, name := r.PathValue("speakerID"), r.FormValue("name")
+	id := r.PathValue("speakerID")
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		name = strings.TrimSpace(r.Header.Get("HX-Prompt"))
+	}
 	if id == "" || name == "" {
 		httpErr(w, 400, "speaker and name required")
 		return
 	}
 	if err := a.Store.RedactSpeaker(r.Context(), id, name); err != nil {
 		httpErr(w, 500, "redact failed")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte(name))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

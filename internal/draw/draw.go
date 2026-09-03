@@ -116,26 +116,14 @@ func (d *DrawService) Generate(ctx context.Context, roundID string) (Draft, erro
 
 // ensureTeamSize enforces exactly 2 active speakers before mutating a draft.
 func (d *DrawService) ensureTeamSize(ctx context.Context, teamID string) error {
-	tws, err := d.Store.ListTeamsWithSpeakers(ctx)
+	n, err := d.Store.CountActiveSpeakers(ctx, teamID)
 	if err != nil {
 		return err
 	}
-	for _, tw := range tws {
-		if tw.Team.ID != teamID {
-			continue
-		}
-		n := 0
-		for _, sp := range tw.Speakers {
-			if sp.IsActive {
-				n++
-			}
-		}
-		if n != 2 {
-			return fmt.Errorf("%w: team %q has %d active speakers", ErrTeamSize, tw.Team.Name, n)
-		}
-		return nil
+	if n != 2 {
+		return fmt.Errorf("%w: team %q has %d active speakers", ErrTeamSize, teamID, n)
 	}
-	return fmt.Errorf("%w: team %q not found", ErrTeamSize, teamID)
+	return nil
 }
 
 func (d *DrawService) MoveTeam(ctx context.Context, roundID, teamID, targetRoomID string) error {

@@ -480,3 +480,80 @@ func TestHiddenRoundLeavesPublic(t *testing.T) {
 		t.Fatalf("hide missing round = %v, want ErrNotFound", err)
 	}
 }
+
+func TestCountActiveSpeakers(t *testing.T) {
+	st, ctx := testStore(t)
+	tw := mustTeam(t, st, ctx, "Team Alpha", "Speaker 1", "Speaker 2")
+	n, err := st.CountActiveSpeakers(ctx, tw.Team.ID)
+	if err != nil || n != 2 {
+		t.Fatalf("count = %d, err = %v, want 2", n, err)
+	}
+}
+
+func TestSubstituteInactiveSpeakerRejected(t *testing.T) {
+	st, ctx := testStore(t)
+	tw := mustTeam(t, st, ctx, "Team Beta", "SpkA", "SpkB")
+	// Substitute SpkA with SpkC
+	if err := st.SubstituteSpeaker(ctx, tw.Team.ID, tw.Speakers[0].ID, "", "SpkC"); err != nil {
+		t.Fatal(err)
+	}
+	// Attempt to substitute the already inactive SpkA again
+	if err := st.SubstituteSpeaker(ctx, tw.Team.ID, tw.Speakers[0].ID, "", "SpkD"); err == nil {
+		t.Fatal("substituting an inactive speaker must fail")
+	}
+}
+
+func TestDeleteExpiredSessions(t *testing.T) {
+	st, ctx := testStore(t)
+	if err := st.EnsureAdmin(ctx, "adm", "hash"); err != nil {
+		t.Fatal(err)
+	}
+	adm, _ := st.GetAdminByUsername(ctx, "adm")
+	// Expired session
+	if err := st.CreateSession(ctx, "exp-tok", adm.ID, time.Now().Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	// Active session
+	if err := st.CreateSession(ctx, "live-tok", adm.ID, time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	deleted, err := st.DeleteExpiredSessions(ctx)
+	if err != nil || deleted != 1 {
+		t.Fatalf("deleted = %d, err = %v, want 1", deleted, err)
+	}
+	// Verify live session remains
+	if _, err := st.GetSessionByToken(ctx, "live-tok"); err != nil {
+		t.Fatalf("live session was unexpectedly deleted: %v", err)
+	}
+	// Verify expired session is gone
+	if _, err := st.GetSessionByToken(ctx, "exp-tok"); err != ErrNotFound {
+		t.Fatalf("expired session still present: %v", err)
+	}
+}
+
+func TestCreateTeamsBatch(t *testing.T) {
+	st, ctx := testStore(t)
+	mustTeam(t, st, ctx, "Existing Team", "A", "B")
+
+	items := []ImportTeam{
+		{Line: 1, Name: "New Team 1", Speaker1: "S1", Speaker2: "S2"},
+		{Line: 2, Name: "Existing Team", Speaker1: "S3", Speaker2: "S4"}, // duplicate against DB
+		{Line: 3, Name: "New Team 2", Speaker1: "S5", Speaker2: "S6"},
+		{Line: 4, Name: "New Team 1", Speaker1: "S7", Speaker2: "S8"}, // duplicate against batch
+	}
+
+	conflicts, err := st.CreateTeamsBatch(ctx, items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(conflicts) != 2 {
+		t.Fatalf("conflicts = %d, want 2", len(conflicts))
+	}
+	teams, err := st.ListTeamsWithSpeakers(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(teams) != 3 { // Existing Team + New Team 1 + New Team 2
+		t.Fatalf("total teams = %d, want 3", len(teams))
+	}
+}
