@@ -28,7 +28,7 @@ func NewAdminRounds(s *store.Store, d *draw.DrawService, t *template.Template, h
 
 // RegisterAdminRounds wires admin round routes onto mux.
 func RegisterAdminRounds(mux *http.ServeMux, a AdminRounds) {
-	g := func(h http.HandlerFunc) http.Handler { return auth.RequireAuth(a.Store, h) }
+	g := func(h http.HandlerFunc) http.Handler { return auth.RequireAuth(a.Store, auth.CSRFProtect(h)) }
 	mux.Handle("GET /admin/rounds", g(a.Index))
 	mux.Handle("POST /admin/rounds", g(a.Create))
 	mux.Handle("POST /admin/rounds/generate", g(a.Generate))
@@ -76,9 +76,17 @@ func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 // Create stores a new draft round. A taken order re-renders the list with
 // a choice: shift later rounds forward, or pick another order.
 func (a AdminRounds) Create(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	order, _ := strconv.Atoi(r.FormValue("round_order"))
-	rooms, _ := strconv.Atoi(r.FormValue("num_rooms"))
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		httpErr(w, http.StatusBadRequest, "round name required")
+		return
+	}
+	order, err1 := strconv.Atoi(strings.TrimSpace(r.FormValue("round_order")))
+	rooms, err2 := strconv.Atoi(strings.TrimSpace(r.FormValue("num_rooms")))
+	if err1 != nil || err2 != nil || rooms <= 0 || order <= 0 {
+		httpErr(w, http.StatusBadRequest, "order and num_rooms must be positive integers")
+		return
+	}
 	if r.FormValue("mode") == "shift" {
 		if err := a.Store.ShiftRoundsFrom(r.Context(), order); err != nil {
 			httpErr(w, 500, "shift failed")
@@ -220,17 +228,23 @@ func (a AdminRounds) FlipSides(w http.ResponseWriter, r *http.Request) {
 	a.draftCanvas(w, r, roundID)
 }
 
-// Publish locks the draft (guarded) and broadcasts the SSE frame.
+// Publish locks the draft (guarded) and broadcasts the SSE frame if visible.
 func (a AdminRounds) Publish(w http.ResponseWriter, r *http.Request) {
 	roundID := r.PathValue("roundID")
 	if err := a.Draw.Publish(r.Context(), roundID); err != nil {
 		httpErr(w, 409, "publish failed")
 		return
 	}
-	allocs, _ := a.Store.GetDraftAllocations(r.Context(), roundID)
-	var buf bytes.Buffer
-	_ = a.Tmpl.ExecuteTemplate(&buf, "draw_grid", map[string]any{"Rooms": GroupDraw(allocs)})
-	a.Hub.Broadcast(stream.EncodeSSEFrame("draw-published", buf.String()))
+	round, err := a.Store.GetRound(r.Context(), roundID)
+	if err == nil && !round.IsHidden {
+		allocs, err := a.Store.GetDraftAllocations(r.Context(), roundID)
+		if err == nil {
+			var buf bytes.Buffer
+			if err := a.Tmpl.ExecuteTemplate(&buf, "draw_grid", map[string]any{"Rooms": GroupDraw(allocs)}); err == nil {
+				a.Hub.Broadcast(stream.EncodeSSEFrame("draw-published", buf.String()))
+			}
+		}
+	}
 	http.Redirect(w, r, "/admin/rounds/"+roundID+"/draft", http.StatusSeeOther)
 }
 

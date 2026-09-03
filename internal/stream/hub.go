@@ -22,12 +22,19 @@ func New() *Hub {
 	return &Hub{clients: make(map[chan string]struct{})}
 }
 
-// Register adds a buffered (cap 4) client channel to the hub.
+// MaxClients is the upper bound on concurrent SSE subscribers.
+const MaxClients = 1000
+
+// Register adds a buffered (cap 4) client channel to the hub, or returns nil
+// if MaxClients has been reached.
 func (h *Hub) Register() chan string {
-	ch := make(chan string, clientBuffer)
 	h.mu.Lock()
+	defer h.mu.Unlock()
+	if len(h.clients) >= MaxClients {
+		return nil
+	}
+	ch := make(chan string, clientBuffer)
 	h.clients[ch] = struct{}{}
-	h.mu.Unlock()
 	return ch
 }
 
