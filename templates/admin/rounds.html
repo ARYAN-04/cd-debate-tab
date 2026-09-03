@@ -30,6 +30,9 @@
 </div>
 {{end}}
 <p class="lbl">All rounds</p>
+<div class="filterbar">
+{{if .HideDone}}<span class="mut">Showing drafts only.</span> <a href="/admin/rounds">Show all rounds</a>{{else if gt .DoneCount 0}}<a href="/admin/rounds?hide=done">Hide finished ({{.DoneCount}})</a>{{end}}
+</div>
 <div class="box">
 {{range .Rounds}}
 <div class="row">

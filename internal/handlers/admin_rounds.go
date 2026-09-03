@@ -45,15 +45,23 @@ type RoundRow struct {
 	HasDraft bool
 }
 
-// Index lists rounds with a creator form.
+// Index lists rounds with a creator form. ?hide=done filters finished rounds.
 func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 	rounds, err := a.Store.ListRounds(r.Context())
 	if err != nil {
 		httpErr(w, 500, "list failed")
 		return
 	}
+	hideDone := r.URL.Query().Get("hide") == "done"
 	rows := make([]RoundRow, 0, len(rounds))
+	done := 0
 	for _, rd := range rounds {
+		if rd.Status != "draft" {
+			done++
+			if hideDone {
+				continue
+			}
+		}
 		has, err := a.Store.HasDraft(r.Context(), rd.ID)
 		if err != nil {
 			httpErr(w, 500, "list failed")
@@ -61,7 +69,7 @@ func (a AdminRounds) Index(w http.ResponseWriter, r *http.Request) {
 		}
 		rows = append(rows, RoundRow{Round: rd, HasDraft: has})
 	}
-	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows})
+	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows, "HideDone": hideDone, "DoneCount": done})
 }
 
 // Create stores a new draft round. A taken order re-renders the list with
@@ -110,6 +118,7 @@ func (a AdminRounds) renderIndexWithConflict(w http.ResponseWriter, r *http.Requ
 	}
 	rows := make([]RoundRow, 0, len(rounds))
 	existing := ""
+	done := 0
 	for _, rd := range rounds {
 		has, err := a.Store.HasDraft(r.Context(), rd.ID)
 		if err != nil {
@@ -119,9 +128,12 @@ func (a AdminRounds) renderIndexWithConflict(w http.ResponseWriter, r *http.Requ
 		if rd.RoundOrder == order {
 			existing = rd.Name
 		}
+		if rd.Status != "draft" {
+			done++
+		}
 		rows = append(rows, RoundRow{Round: rd, HasDraft: has})
 	}
-	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows,
+	render(w, a.Tmpl, "rounds", map[string]any{"Rounds": rows, "HideDone": false, "DoneCount": done,
 		"Conflict": conflictForm{Name: name, Order: order, NumRooms: rooms, Existing: existing}})
 }
 
